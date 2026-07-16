@@ -1,0 +1,16 @@
+{
+  "source": "http://127.0.0.1:62996/index.html",
+  "title": "URL Sample",
+  "meta_description": "URL desc",
+  "headers": [
+    {
+      "level": 1,
+      "text": "URL Heading"
+    }
+  ],
+  "body_text": "URL Heading URL body text.",
+  "existing_schema": null,
+  "published_date": "2026-07-02",
+  "updated_date": null,
+  "word_count": 5
+}

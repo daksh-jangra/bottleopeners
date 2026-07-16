@@ -1,0 +1,20 @@
+{
+  "source": "/var/folders/dg/y7bkwvk578d1ww9q745t8rh40000gn/T/tmp.gruCrdAZh6/sample.html",
+  "title": "Schema Article",
+  "meta_description": "An article with schema and dates.",
+  "headers": [
+    {
+      "level": 1,
+      "text": "Schema Article"
+    },
+    {
+      "level": 2,
+      "text": "Section One"
+    }
+  ],
+  "body_text": "Schema Article Section One Body text with actual content.",
+  "existing_schema": "{\n    \"@context\": \"https://schema.org\",\n    \"@type\": \"Article\",\n    \"headline\": \"Schema Article\",\n    \"datePublished\": \"2026-06-30\",\n    \"dateModified\": \"2026-07-02\"\n  }",
+  "published_date": "2026-06-30",
+  "updated_date": "2026-07-02",
+  "word_count": 9
+}

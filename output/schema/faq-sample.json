@@ -1,0 +1,29 @@
+{
+  "source": "faq-sample.html",
+  "detected_type": "faq",
+  "schema_jsonld": {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is Bottleopeners?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It is a schema generator."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does it work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It reads phase 1 JSON."
+        }
+      }
+    ],
+    "description": "Short FAQ sample."
+  },
+  "ready_to_paste": "<script type=\"application/ld+json\">{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"FAQPage\",\n  \"mainEntity\": [\n    {\n      \"@type\": \"Question\",\n      \"name\": \"What is Bottleopeners?\",\n      \"acceptedAnswer\": {\n        \"@type\": \"Answer\",\n        \"text\": \"It is a schema generator.\"\n      }\n    },\n    {\n      \"@type\": \"Question\",\n      \"name\": \"How does it work?\",\n      \"acceptedAnswer\": {\n        \"@type\": \"Answer\",\n        \"text\": \"It reads phase 1 JSON.\"\n      }\n    }\n  ],\n  \"description\": \"Short FAQ sample.\"\n}</script>",
+  "notes": []
+}
