@@ -29,7 +29,22 @@ from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 
 DEFAULT_TIMEOUT_SECONDS = 15
-UNWANTED_TAGS = ("script", "style", "noscript", "template", "nav", "footer", "aside")
+# Note: <header> is deliberately NOT stripped — articles often wrap their H1 in
+# one. Page-level headers are excluded instead by preferring the <main>/<article>
+# root, plus the BOILERPLATE_HEADINGS filter for stray "Log in"-style labels.
+UNWANTED_TAGS = ("script", "style", "noscript", "template", "nav", "footer", "aside", "form")
+
+# Section headings that are page furniture, not article content. Real sites bury
+# these inside the main content area, so tag-stripping alone won't remove them.
+BOILERPLATE_HEADINGS = frozenset({
+    "references", "related", "related articles", "you might also like",
+    "about this article", "see also", "external links", "further reading",
+    "sources", "citations", "log in", "sign up", "sign in", "navigation menu",
+    "table of contents", "share", "comments", "advertisement",
+    "trending articles", "trending", "quizzes & games", "quizzes",
+    "reader success stories", "did this article help you?",
+    "featured articles", "popular categories", "newsletter",
+})
 
 
 class IngestError(Exception):
@@ -82,6 +97,8 @@ def extract_headers(soup: BeautifulSoup) -> list[dict[str, object]]:
     for header in soup.find_all(["h1", "h2", "h3"]):
         text = normalize_whitespace(header.get_text(" ", strip=True))
         if not text:
+            continue
+        if text.lower() in BOILERPLATE_HEADINGS:
             continue
         level = int(header.name[1])
         headers.append({"level": level, "text": text})
@@ -174,12 +191,14 @@ def extract_html_payload(html: str, source: str) -> dict[str, object]:
         Path(urlparse(source).path).stem if urlparse(source).scheme else None,
     ]) or "Untitled"
     meta_description = extract_meta_description(soup)
-    headers = extract_headers(soup)
     existing_schema = extract_schema_blocks(soup)
 
     body_soup = BeautifulSoup(html, "html.parser")
     remove_unwanted_elements(body_soup)
     body_root = body_soup.find("main") or body_soup.find("article") or body_soup.body or body_soup
+    # Extract headers and structure from the cleaned content root so page chrome
+    # (login links, nav, "You Might Also Like") never counts as article content.
+    headers = extract_headers(body_root)
     list_count, table_count = count_html_structure(body_root)
     body_text = normalize_whitespace(body_root.get_text(" ", strip=True))
     if not body_text:
