@@ -40,6 +40,28 @@ Markdown input:
 python ingest.py --text ./fixtures/article.md
 ```
 
+## Phase 4: LLM Rewriter
+
+`rewriter.py` rewrites Phase 1 content so AI answer engines are more likely to quote it (answer-first openings, fact-dense sentences, explicit list/table structure, specific headers). It emits a Phase 1-shaped payload, so Phase 2 and Phase 3 can run on the rewrite unchanged to prove the score lift.
+
+This is the first phase that calls a model, so it needs an API key at run time:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+python rewriter.py --input ./output/<slug>.json
+python rewriter.py --input ./output/<slug>.json --analysis ./output/analyzed/<slug>.json
+```
+
+Passing `--analysis` (a Phase 2 output) makes the rewrite target that page's specific weaknesses. Output is written to `./output/rewritten/<slug>.json`.
+
+Until the key is set, `--dry-run` builds and prints the exact request that would be sent — the whole pipeline can be verified without a key or any spend:
+
+```bash
+python rewriter.py --input ./output/<slug>.json --dry-run
+```
+
+The default model is `claude-opus-4-8`; override with `--model`.
+
 ## Known Limitations
 
 - JavaScript-rendered pages will not be fully scraped unless the content is already present in the initial HTML response.
