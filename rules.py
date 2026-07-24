@@ -286,6 +286,12 @@ def score_list_table_presence(payload: dict[str, Any]) -> dict[str, Any]:
     if table_count >= 1 or pipe_tables >= 2:
         evidence += 1
         issues.append("Table structure was found; tables are highly citable by AI answers.")
+    if list_count >= 2 and table_count >= 1:
+        # Multiple real lists plus a real table is comprehensive structure on its
+        # own; credit it deterministically rather than relying on the fuzzy
+        # colon/semicolon text heuristics, which vary with flattened body text.
+        evidence += 1
+        issues.append("Content combines multiple lists with a table; this is strong, citable structure.")
     if semicolon_runs >= 3 and compact_lines >= 4:
         evidence += 1
         issues.append("Dense clause-separated formatting may indicate a list or table that is still readable.")
