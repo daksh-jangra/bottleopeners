@@ -1,0 +1,320 @@
+"""Phase 6 multi-AI test harness for AI-citation optimization.
+
+Asks AI answer engines real questions and checks whether a target page's
+domain shows up in the sources they cite. This is the "did it actually work"
+verification step: run it before and after optimizing a page to see whether
+the page starts getting cited.
+
+Providers are pluggable. Claude works today via its web-search tool. Other
+engines are registered as drop-in slots that activate once their API keys are
+present; Google AI Overviews is registered but cannot be tested (no public API).
+
+Usage:
+  python harness.py --target example.com --query "how to descale a coffee maker"
+  python harness.py --target example.com --from-rewrite ./output/rewritten/<slug>.json
+  python harness.py --target example.com --query "..." --provider claude --dry-run
+  python harness.py --list-providers
+
+Needs ANTHROPIC_API_KEY (env or a gitignored .env) for the Claude provider.
+Each query costs a small amount (web search + tokens), so use --dry-run to
+preview what would run without spending anything.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+from typing import Any, Callable, Optional
+from urllib.parse import urlparse
+
+DEFAULT_MODEL = "claude-opus-4-8"
+WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search"}
+
+# The harness must behave like a real answer engine that consults the web before
+# answering. Without this, Claude answers common questions from memory and never
+# searches, so there is nothing to check for citation.
+SEARCH_SYSTEM_PROMPT = (
+    "You are a research assistant answering a user's question. Always use the "
+    "web_search tool to find current, authoritative sources before you answer, "
+    "even for familiar topics. Base your answer on the pages you find and cite "
+    "them."
+)
+
+
+class HarnessError(Exception):
+    pass
+
+
+def load_dotenv(path: str = ".env") -> None:
+    """Load KEY=VALUE lines from a local .env; real environment values win."""
+    env_path = Path(path)
+    if not env_path.is_file():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip("'").strip('"')
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+def slugify(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
+    return slug or "output"
+
+
+def normalize_domain(value: str) -> str:
+    """Reduce a URL or host to a bare, comparable domain (no scheme/www/path)."""
+    value = value.strip().lower()
+    if "://" not in value:
+        value = "http://" + value
+    host = urlparse(value).netloc or ""
+    host = host.split("@")[-1].split(":")[0]
+    if host.startswith("www."):
+        host = host[4:]
+    return host
+
+
+def domains_match(target: str, candidate_url: str) -> bool:
+    """True if candidate_url is on the target domain (or a subdomain of it)."""
+    cand = normalize_domain(candidate_url)
+    if not cand or not target:
+        return False
+    return cand == target or cand.endswith("." + target)
+
+
+def load_json(path: str, label: str) -> dict[str, Any]:
+    input_path = Path(path)
+    if not input_path.is_file():
+        raise HarnessError(f"{label} file not found: {path}")
+    try:
+        return json.loads(input_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise HarnessError(f"{label} file is not valid JSON: {exc}") from exc
+
+
+def queries_from_rewrite(path: str) -> list[str]:
+    """Pull the FAQ questions from a Phase 4 rewrite as ready-made test queries."""
+    data = load_json(path, "Rewrite")
+    faq = data.get("faq")
+    questions: list[str] = []
+    if isinstance(faq, list):
+        for item in faq:
+            if isinstance(item, dict) and isinstance(item.get("question"), str):
+                questions.append(item["question"].strip())
+    return [q for q in questions if q]
+
+
+# --- Providers ---------------------------------------------------------------
+
+def run_claude(query: str, model: str) -> tuple[list[str], str]:
+    """Ask Claude the query with web search on; return (result URLs, answer text)."""
+    try:
+        import anthropic
+    except ImportError as exc:
+        raise HarnessError("The 'anthropic' package is not installed. Run: pip install anthropic") from exc
+
+    client = anthropic.Anthropic()
+    try:
+        message = client.messages.create(
+            model=model,
+            max_tokens=1500,
+            system=SEARCH_SYSTEM_PROMPT,
+            tools=[WEB_SEARCH_TOOL],
+            messages=[{"role": "user", "content": query}],
+        )
+    except anthropic.AuthenticationError as exc:
+        raise HarnessError("Authentication failed; check ANTHROPIC_API_KEY.") from exc
+    except anthropic.APIError as exc:
+        raise HarnessError(f"Claude API request failed: {exc}") from exc
+
+    urls: list[str] = []
+    answer_parts: list[str] = []
+    for block in message.content:
+        btype = getattr(block, "type", None)
+        if btype == "web_search_tool_result":
+            content = getattr(block, "content", None)
+            if isinstance(content, list):  # a list is success; an object is an error
+                for result in content:
+                    url = getattr(result, "url", None)
+                    if url:
+                        urls.append(url)
+        elif btype == "text":
+            answer_parts.append(getattr(block, "text", ""))
+    return urls, " ".join(answer_parts).strip()
+
+
+# Each provider: label, the env var its key lives in, and a runner (None = not
+# yet wired up). Slots are registered even when unimplemented so the pluggable
+# design is explicit and the report can show what's covered vs. not.
+PROVIDERS: dict[str, dict[str, Any]] = {
+    "claude": {
+        "label": "Claude (web search)",
+        "env": "ANTHROPIC_API_KEY",
+        "runner": run_claude,
+        "note": "",
+    },
+    "openai": {
+        "label": "ChatGPT / OpenAI",
+        "env": "OPENAI_API_KEY",
+        "runner": None,
+        "note": "Runner not implemented yet; add an OpenAI module when a key is available.",
+    },
+    "perplexity": {
+        "label": "Perplexity",
+        "env": "PERPLEXITY_API_KEY",
+        "runner": None,
+        "note": "Runner not implemented yet; add a Perplexity module when a key is available.",
+    },
+    "google": {
+        "label": "Google AI Overviews",
+        "env": None,
+        "runner": None,
+        "note": "No public API — AI Overviews cannot be tested programmatically.",
+    },
+}
+
+
+def provider_availability(name: str) -> tuple[bool, str]:
+    """Return (available, reason). reason explains why an unavailable provider is off."""
+    spec = PROVIDERS[name]
+    if spec["runner"] is None:
+        return False, spec["note"] or "Not implemented."
+    env = spec["env"]
+    if env and not os.environ.get(env):
+        return False, f"Set {env} to enable this provider."
+    return True, ""
+
+
+def run_provider(name: str, queries: list[str], target: str, model: str) -> dict[str, Any]:
+    spec = PROVIDERS[name]
+    available, reason = provider_availability(name)
+    result: dict[str, Any] = {"provider": name, "label": spec["label"], "available": available}
+    if not available:
+        result["reason"] = reason
+        result["results"] = []
+        return result
+
+    runner: Callable[[str, str], tuple[list[str], str]] = spec["runner"]
+    per_query: list[dict[str, Any]] = []
+    cited_count = 0
+    for query in queries:
+        urls, answer = runner(query, model)
+        cited = any(domains_match(target, u) for u in urls)
+        if cited:
+            cited_count += 1
+        cited_domains = sorted({normalize_domain(u) for u in urls if normalize_domain(u)})
+        per_query.append({
+            "query": query,
+            "cited": cited,
+            "sources_found": len(urls),
+            "cited_domains": cited_domains,
+            "answer_excerpt": answer[:240],
+        })
+    result["results"] = per_query
+    result["citation_rate"] = f"{cited_count}/{len(queries)}" if queries else "0/0"
+    return result
+
+
+def write_output(report: dict[str, Any], slug: str) -> Path:
+    output_dir = Path.cwd() / "output" / "harness"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{slug}.json"
+    output_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return output_path
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Phase 6 multi-AI test harness for AI-citation optimization.")
+    parser.add_argument("--target", help="Domain or URL to check for in AI answers, e.g. example.com.")
+    parser.add_argument("--query", action="append", default=[], help="A test query (repeatable).")
+    parser.add_argument("--from-rewrite", help="Pull test queries from a Phase 4 rewrite's FAQ.")
+    parser.add_argument("--provider", action="append", default=[], help="Provider to run (repeatable). Default: claude.")
+    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Model for the Claude provider (default: {DEFAULT_MODEL}).")
+    parser.add_argument("--list-providers", action="store_true", help="List providers and their availability, then exit.")
+    parser.add_argument("--dry-run", action="store_true", help="Show what would run without calling any API.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    try:
+        load_dotenv()
+        args = parse_args()
+
+        if args.list_providers:
+            listing = []
+            for name in PROVIDERS:
+                available, reason = provider_availability(name)
+                listing.append({
+                    "provider": name,
+                    "label": PROVIDERS[name]["label"],
+                    "available": available,
+                    "reason": reason,
+                })
+            json.dump({"providers": listing}, sys.stdout, indent=2, ensure_ascii=False)
+            sys.stdout.write("\n")
+            return 0
+
+        if not args.target:
+            raise HarnessError("--target is required (the domain to check for), unless using --list-providers.")
+        target = normalize_domain(args.target)
+
+        queries = list(args.query)
+        if args.from_rewrite:
+            queries.extend(queries_from_rewrite(args.from_rewrite))
+        # De-duplicate while preserving order.
+        seen: set[str] = set()
+        queries = [q for q in queries if not (q in seen or seen.add(q))]
+        if not queries:
+            raise HarnessError("No test queries provided. Use --query or --from-rewrite.")
+
+        providers = args.provider or ["claude"]
+        unknown = [p for p in providers if p not in PROVIDERS]
+        if unknown:
+            raise HarnessError(f"Unknown provider(s): {', '.join(unknown)}. Known: {', '.join(PROVIDERS)}.")
+
+        if args.dry_run:
+            preview = {
+                "dry_run": True,
+                "target": target,
+                "queries": queries,
+                "providers": [
+                    {"provider": p, "available": provider_availability(p)[0], "reason": provider_availability(p)[1]}
+                    for p in providers
+                ],
+            }
+            json.dump(preview, sys.stdout, indent=2, ensure_ascii=False)
+            sys.stdout.write("\n")
+            return 0
+
+        report = {
+            "target": target,
+            "model": args.model,
+            "queries_tested": len(queries),
+            "providers": [run_provider(p, queries, target, args.model) for p in providers],
+        }
+
+        write_output(report, slugify(target))
+        json.dump(report, sys.stdout, indent=2, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return 0
+    except HarnessError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        print("Error: interrupted.", file=sys.stderr)
+        return 130
+    except Exception:
+        print("Error: unexpected failure while running the harness.", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
