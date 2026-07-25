@@ -21,6 +21,7 @@ from flask import Flask, jsonify, render_template, request
 
 import analyzer
 import generator
+import harness
 import ingest
 import rewriter
 import rubric
@@ -115,6 +116,50 @@ def api_rewrite():
     except rewriter.RewriterError as exc:
         return jsonify({"error": str(exc)}), 400
     except ingest.IngestError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+
+
+@app.post("/api/competitors")
+def api_competitors():
+    from collections import Counter
+
+    data = request.json or {}
+    target = (data.get("target") or "").strip()
+    queries = data.get("queries") or []
+    if isinstance(queries, str):
+        queries = queries.splitlines()
+    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:6]  # cap to bound cost/time
+
+    if not target:
+        return jsonify({"error": "Enter your domain."}), 400
+    if not queries:
+        return jsonify({"error": "Enter at least one question."}), 400
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run citation checks."}), 400
+
+    try:
+        target_norm = harness.normalize_domain(target)
+        counts: Counter = Counter()
+        target_cited = 0
+        for query in queries:
+            urls, _answer = harness.run_claude(query, DEFAULT_MODEL)
+            for domain in {harness.normalize_domain(u) for u in urls if harness.normalize_domain(u)}:
+                counts[domain] += 1
+            if any(harness.domains_match(target_norm, u) for u in urls):
+                target_cited += 1
+        competitors = [
+            {"domain": d, "cited_in": c, "is_target": d == target_norm or d.endswith("." + target_norm)}
+            for d, c in counts.most_common()
+        ]
+        return jsonify({
+            "target": target_norm,
+            "queries": len(queries),
+            "target_cited": target_cited,
+            "competitors": competitors,
+        })
+    except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return jsonify({"error": f"Unexpected error: {exc}"}), 500

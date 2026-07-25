@@ -72,9 +72,9 @@
     <div class="brand">◆ citepilot</div>
     <div class="ws"><div class="ic">CP</div><div><div style="font-weight:700">Your workspace</div><small>Citation readiness</small></div></div>
     <nav>
-      <a class="active">📈 Analyze</a>
+      <a class="active" data-view="analyze">📈 Analyze</a>
+      <a data-view="competitors">🏆 Competitors <span class="tag">Phase 6</span></a>
       <a class="dim">✍️ Rewrite <span class="tag">on page</span></a>
-      <a class="dim">🔎 Citation Test <span class="tag">Phase 6</span></a>
       <a class="dim">🧩 Schema</a>
       <a class="dim">📄 Report</a>
       <a class="dim">📚 Documentation</a>
@@ -84,6 +84,7 @@
   <div class="main">
     <div class="topbar">🎯 <span>Live tool — analyze any page against AI citation-readiness signals.</span></div>
     <div class="body">
+      <div id="view-analyze">
       <h1>Analyze a page</h1>
       <p class="sub">Paste a URL. We read the page, score how quotable it is to AI answer engines, and show the fixes ranked by impact.</p>
 
@@ -131,8 +132,33 @@
           <p class="cur" id="schemaType"></p>
           <pre id="schema"></pre>
         </div>
+      </div><!-- /#results -->
+      </div><!-- /#view-analyze -->
+
+      <div id="view-competitors" class="hidden">
+        <h1>Competitor citations</h1>
+        <p class="sub">Enter your domain and a few questions your customers ask. We ask Claude each one with live web search and show which sites are winning the citations.</p>
+        <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
+          <input id="c-target" type="text" placeholder="your domain, e.g. yoursite.com">
+          <textarea id="c-queries" rows="4" placeholder="One question per line, e.g.&#10;how do I descale a coffee maker&#10;best way to remove limescale from a kettle" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
+          <div><button class="primary" id="c-go">Run citation check</button>
+          <span class="cur" style="margin-left:10px">Live web searches — a few queries can take a couple of minutes.</span></div>
+        </div>
+        <div id="c-err" class="err hidden"></div>
+        <div id="c-results" class="hidden">
+          <div class="card">
+            <h2>Your citation rate</h2>
+            <div class="score"><span id="c-rate">0</span></div>
+            <p class="cur" id="c-rate-note"></p>
+          </div>
+          <div class="card">
+            <h2>Who's winning the citations</h2>
+            <div id="c-table"></div>
+          </div>
+        </div>
       </div>
-      <p class="foot">Scores estimate how quotable a page is to AI answer engines and search. Rewrites use Claude and consume API credit.</p>
+
+      <p class="foot">Scores estimate how quotable a page is to AI answer engines and search. Rewrites and citation checks use Claude and consume API credit.</p>
     </div>
   </div>
 </div>
@@ -209,9 +235,48 @@ function setBusy(btn, busy, label){
 function showErr(msg){ const e=$('err'); e.textContent=msg; e.classList.remove('hidden'); }
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+// --- view switching ---
+function showView(name){
+  document.querySelectorAll('#view-analyze, #view-competitors').forEach(v=>v.classList.add('hidden'));
+  document.getElementById('view-'+name).classList.remove('hidden');
+  document.querySelectorAll('nav a[data-view]').forEach(a=>a.classList.toggle('active', a.dataset.view===name));
+}
+document.querySelectorAll('nav a[data-view]').forEach(a=>a.addEventListener('click',()=>showView(a.dataset.view)));
+
+// --- competitors ---
+async function runCompetitors(){
+  const target = $('c-target').value.trim();
+  const queries = $('c-queries').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!target){ cErr('Enter your domain.'); return; }
+  if(!queries.length){ cErr('Enter at least one question.'); return; }
+  $('c-err').classList.add('hidden'); $('c-results').classList.add('hidden');
+  setBusy($('c-go'), true, 'Running live searches…');
+  try{
+    const res = await fetch('/api/competitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,queries})});
+    const data = await res.json();
+    if(!res.ok){ cErr(data.error || 'Failed.'); return; }
+    renderCompetitors(data);
+  }catch(e){ cErr('Network error: '+e.message); }
+  finally{ setBusy($('c-go'), false, 'Run citation check'); }
+}
+function renderCompetitors(d){
+  $('c-rate').textContent = d.target_cited + ' / ' + d.queries;
+  $('c-rate-note').textContent = d.target_cited>0
+    ? `${d.target} was cited for ${d.target_cited} of ${d.queries} queries.`
+    : `${d.target} was not cited for any of the ${d.queries} queries — that gap is the opportunity.`;
+  const rows = (d.competitors||[]).filter(c=>!c.is_target).slice(0,15);
+  $('c-table').innerHTML = rows.map((c,i)=>`
+    <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(c.domain)}</span>
+    <span class="gain">${c.cited_in}/${d.queries} queries</span></div>${bar(c.cited_in, d.queries)}</div>`).join('')
+    || '<p>No competing domains found.</p>';
+  $('c-results').classList.remove('hidden');
+}
+function cErr(m){ const e=$('c-err'); e.textContent=m; e.classList.remove('hidden'); }
+
 $('go').addEventListener('click', analyze);
 $('url').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });
 $('rewriteBtn').addEventListener('click', rewrite);
+$('c-go').addEventListener('click', runCompetitors);
 </script>
 </body>
 </html>
