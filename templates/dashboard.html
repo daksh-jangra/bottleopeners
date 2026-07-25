@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Citation Readiness</title>
+<style>
+  :root{
+    --green:#12563a; --green-2:#1a7a52; --accent:#16a34a;
+    --bg:#f4f5f3; --panel:#ffffff; --line:#e6e8e5; --ink:#1c2420; --muted:#6b7670;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .app{display:flex;min-height:100vh}
+  /* sidebar */
+  .side{width:250px;background:var(--panel);border-right:1px solid var(--line);padding:22px 16px;flex:none}
+  .brand{font-weight:800;font-size:22px;letter-spacing:-.5px;color:var(--green);padding:0 8px 18px}
+  .ws{display:flex;gap:10px;align-items:center;padding:10px 8px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:14px}
+  .ws .ic{width:36px;height:36px;border-radius:9px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .ws small{color:var(--muted)}
+  nav a{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:9px;color:var(--ink);text-decoration:none;font-weight:500;margin:2px 0;cursor:pointer}
+  nav a.active{background:#eaf3ee;color:var(--green)}
+  nav a.dim{color:#aab2ac} nav a.dim:hover{background:transparent;cursor:default}
+  nav .tag{margin-left:auto;font-size:11px;background:#eef0ec;color:#8b948d;border-radius:20px;padding:1px 8px}
+  /* main */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{background:var(--green);color:#eafff3;padding:12px 26px;display:flex;align-items:center;gap:14px;font-size:14px}
+  .topbar b{color:#fff}
+  .body{padding:26px;max-width:1000px;width:100%;margin:0 auto}
+  h1{font-size:22px;margin:0 0 2px}
+  .sub{color:var(--muted);margin:0 0 20px}
+  .providers{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px}
+  .chip{font-size:13px;font-weight:600;border-radius:8px;padding:6px 13px;border:1px solid var(--line)}
+  .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .chip.off{background:#fff;color:#aab2ac}
+  .searchcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;gap:10px;margin-bottom:20px}
+  .searchcard input{flex:1;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;outline:none}
+  .searchcard input:focus{border-color:var(--green-2)}
+  button.primary{background:var(--green);color:#fff;border:0;border-radius:10px;padding:12px 20px;font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap}
+  button.primary:disabled{opacity:.55;cursor:default}
+  button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer}
+  button.ghost:disabled{opacity:.5;cursor:default}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
+  h2{font-size:16px;margin:0 0 14px;letter-spacing:.02em;text-transform:uppercase;color:#4a544e}
+  .hero{display:flex;align-items:center;gap:22px}
+  .grade{width:92px;height:92px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:800;color:#fff;flex:none}
+  .score{font-size:40px;font-weight:800;line-height:1}.score small{font-size:16px;color:var(--muted);font-weight:500}
+  .status{color:#374151;font-weight:600;margin-top:3px}
+  .meta{margin-left:auto;text-align:right;color:var(--muted);font-size:13px}
+  .item{padding:13px 0;border-top:1px solid #eef0ec}.item:first-of-type{border-top:0;padding-top:0}
+  .item-h{display:flex;justify-content:space-between;font-weight:600}
+  .gain{color:var(--accent);font-weight:700}
+  .cur{color:var(--muted);font-size:13px;margin:2px 0}
+  .bar{height:7px;background:#eef0ec;border-radius:6px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%}
+  .action{margin:7px 0 0}
+  ul.spec{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:13.5px}
+  .strengths{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px}
+  .strengths li{background:#eaf3ee;color:var(--green);border-radius:8px;padding:6px 12px;font-size:13.5px;font-weight:600}
+  pre{background:#0b0d12;color:#c9d1d9;border-radius:9px;padding:14px;overflow:auto;font-size:12px}
+  .proof{background:#eaf3ee;border:1px solid #bfe0cd;border-radius:12px;padding:16px;margin-bottom:18px}
+  .proof .up{color:var(--accent);font-weight:800}
+  .hidden{display:none}
+  .err{background:#fdeaea;border:1px solid #f3c0c0;color:#a12727;border-radius:10px;padding:12px 14px;margin-bottom:16px}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid #ffffff88;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:7px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .foot{color:#9aa1ac;font-size:12.5px;margin:6px 0 30px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">◆ citepilot</div>
+    <div class="ws"><div class="ic">CP</div><div><div style="font-weight:700">Your workspace</div><small>Citation readiness</small></div></div>
+    <nav>
+      <a class="active">📈 Analyze</a>
+      <a class="dim">✍️ Rewrite <span class="tag">on page</span></a>
+      <a class="dim">🔎 Citation Test <span class="tag">Phase 6</span></a>
+      <a class="dim">🧩 Schema</a>
+      <a class="dim">📄 Report</a>
+      <a class="dim">📚 Documentation</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">🎯 <span>Live tool — analyze any page against AI citation-readiness signals.</span></div>
+    <div class="body">
+      <h1>Analyze a page</h1>
+      <p class="sub">Paste a URL. We read the page, score how quotable it is to AI answer engines, and show the fixes ranked by impact.</p>
+
+      <div class="providers">
+        <span class="chip on">Claude</span>
+        <span class="chip off">ChatGPT</span>
+        <span class="chip off">Perplexity</span>
+        <span class="chip off">Gemini</span>
+        <span class="chip off">Google AI · no API</span>
+      </div>
+
+      <div class="searchcard">
+        <input id="url" type="url" placeholder="https://example.com/your-article" value="">
+        <button class="primary" id="go">Analyze</button>
+      </div>
+
+      <div id="err" class="err hidden"></div>
+      <div id="results" class="hidden">
+        <div id="proof" class="proof hidden"></div>
+
+        <div class="card">
+          <div class="hero">
+            <div class="grade" id="grade">–</div>
+            <div><div class="score"><span id="score">0</span><small>/100</small></div>
+              <div class="status" id="status"></div></div>
+            <div class="meta" id="meta"></div>
+          </div>
+          <div style="margin-top:16px">
+            <button class="ghost" id="rewriteBtn">✍️ Rewrite with Claude &amp; prove the lift</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Top fixes, ranked by impact</h2>
+          <div id="fixes"></div>
+        </div>
+
+        <div class="card">
+          <h2>Strengths to keep</h2>
+          <ul class="strengths" id="strengths"></ul>
+        </div>
+
+        <div class="card">
+          <h2>Paste this schema into the page</h2>
+          <p class="cur" id="schemaType"></p>
+          <pre id="schema"></pre>
+        </div>
+      </div>
+      <p class="foot">Scores estimate how quotable a page is to AI answer engines and search. Rewrites use Claude and consume API credit.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const GRADE_COLORS = {A:'#16a34a',B:'#65a30d',C:'#d97706',D:'#ea580c',F:'#dc2626'};
+
+function bar(score, max){
+  const pct = max ? Math.round(100*score/max) : 0;
+  const color = pct>=75 ? '#16a34a' : (pct>=40 ? '#d97706' : '#dc2626');
+  return `<div class="bar"><i style="width:${pct}%;background:${color}"></i></div>`;
+}
+
+async function analyze(){
+  const url = $('url').value.trim();
+  if(!url){ showErr('Enter a page URL.'); return; }
+  $('err').classList.add('hidden');
+  $('results').classList.add('hidden');
+  $('proof').classList.add('hidden');
+  setBusy($('go'), true, 'Analyzing…');
+  try{
+    const res = await fetch('/api/analyze', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data = await res.json();
+    if(!res.ok){ showErr(data.error || 'Analysis failed.'); return; }
+    render(data);
+  }catch(e){ showErr('Network error: '+e.message); }
+  finally{ setBusy($('go'), false, 'Analyze'); }
+}
+
+function render(r){
+  $('grade').textContent = r.grade;
+  $('grade').style.background = GRADE_COLORS[r.grade] || '#666';
+  $('score').textContent = r.score;
+  $('status').textContent = r.status;
+  const p = r.page || {};
+  $('meta').innerHTML = `<b>${escapeHtml(p.title||'')}</b><br>${p.word_count||0} words · ${p.headers||0} headers · ${p.lists||0} lists · ${p.tables||0} tables`;
+
+  $('fixes').innerHTML = (r.priorities||[]).map((f,i)=>`
+    <div class="item">
+      <div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(f.label)}</span><span class="gain">+${f.potential_gain} pts</span></div>
+      <div class="cur">Currently ${f.current_score}/${f.max}</div>
+      ${bar(f.current_score, f.max)}
+      <p class="action">${escapeHtml(f.action)}</p>
+      ${f.specifics && f.specifics.length ? '<ul class="spec">'+f.specifics.map(s=>`<li>${escapeHtml(s)}</li>`).join('')+'</ul>' : ''}
+    </div>`).join('') || '<p>No fixes needed — every factor is at full marks.</p>';
+
+  $('strengths').innerHTML = (r.strengths||[]).map(s=>`<li>${escapeHtml(s.label)} ${s.score}/${s.max}</li>`).join('') || '<li>None yet</li>';
+
+  if(r.schema){ $('schemaType').textContent = 'Detected type: '+(r.schema.detected_type||''); $('schema').textContent = r.schema.ready_to_paste||''; }
+  $('results').classList.remove('hidden');
+}
+
+async function rewrite(){
+  const url = $('url').value.trim();
+  setBusy($('rewriteBtn'), true, 'Rewriting with Claude…');
+  try{
+    const res = await fetch('/api/rewrite', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data = await res.json();
+    if(!res.ok){ showErr(data.error || 'Rewrite failed.'); return; }
+    const pr = $('proof');
+    pr.innerHTML = `<b>Proof it works.</b> After Claude's rewrite, this page's score moves from <b>${data.before}</b> to <span class="up">${data.after}</span> (+${data.gain} pts).`
+      + (data.changes && data.changes.length ? '<ul class="spec">'+data.changes.map(c=>`<li>${escapeHtml(c)}</li>`).join('')+'</ul>' : '');
+    pr.classList.remove('hidden');
+    pr.scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(e){ showErr('Network error: '+e.message); }
+  finally{ setBusy($('rewriteBtn'), false, "✍️ Rewrite with Claude & prove the lift"); }
+}
+
+function setBusy(btn, busy, label){
+  btn.disabled = busy;
+  btn.innerHTML = busy ? `<span class="spin"></span>${label}` : label;
+}
+function showErr(msg){ const e=$('err'); e.textContent=msg; e.classList.remove('hidden'); }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+$('go').addEventListener('click', analyze);
+$('url').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });
+$('rewriteBtn').addEventListener('click', rewrite);
+</script>
+</body>
+</html>
