@@ -247,6 +247,14 @@ def score_answer_first_structure(payload: dict[str, Any]) -> dict[str, Any]:
     return _component(score, ANSWER_FIRST_MAX_SCORE, issues)
 
 
+def _structure_count(payload: dict[str, Any], field: str) -> int:
+    """Read a Phase 1 structure count, tolerating payloads written before they existed."""
+    value = payload.get(field)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return 0
+    return value
+
+
 def score_list_table_presence(payload: dict[str, Any]) -> dict[str, Any]:
     body_text = str(payload["body_text"])
     issues: list[str] = []
@@ -259,19 +267,31 @@ def score_list_table_presence(payload: dict[str, Any]) -> dict[str, Any]:
     semicolon_runs = body_text.count(";")
     compact_lines = len(re.findall(r"\b[A-Z][^.!?]{0,35}\b", body_text))
 
+    # Phase 1 counts real <ul>/<ol>/<table> and Markdown blocks, so structure
+    # survives even though body_text is flattened. Text heuristics remain as a
+    # fallback for payloads ingested before these fields existed.
+    list_count = _structure_count(payload, "list_count")
+    table_count = _structure_count(payload, "table_count")
+
     evidence = 0
-    if numbered_items >= 2:
+    if list_count >= 1 or numbered_items >= 2 or bullet_markers >= 2:
         evidence += 1
-        issues.append("Numbered list patterns were found; this helps AI extract discrete points.")
-    if bullet_markers >= 2:
+        issues.append("List structure was found; this helps AI extract discrete points.")
+    if list_count >= 2 or (numbered_items >= 2 and bullet_markers >= 2):
         evidence += 1
-        issues.append("Bullet-style list patterns were found; keep list structure explicit.")
+        issues.append("Multiple distinct lists were found; keep list structure explicit.")
     if colon_pairs >= 3:
         evidence += 1
         issues.append("Key-value style patterns suggest a tabular or fact-dense layout.")
-    if pipe_tables >= 2:
+    if table_count >= 1 or pipe_tables >= 2:
         evidence += 1
-        issues.append("Pipe-separated patterns suggest table-like formatting.")
+        issues.append("Table structure was found; tables are highly citable by AI answers.")
+    if list_count >= 2 and table_count >= 1:
+        # Multiple real lists plus a real table is comprehensive structure on its
+        # own; credit it deterministically rather than relying on the fuzzy
+        # colon/semicolon text heuristics, which vary with flattened body text.
+        evidence += 1
+        issues.append("Content combines multiple lists with a table; this is strong, citable structure.")
     if semicolon_runs >= 3 and compact_lines >= 4:
         evidence += 1
         issues.append("Dense clause-separated formatting may indicate a list or table that is still readable.")

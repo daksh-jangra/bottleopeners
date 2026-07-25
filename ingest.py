@@ -29,7 +29,22 @@ from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 
 DEFAULT_TIMEOUT_SECONDS = 15
-UNWANTED_TAGS = ("script", "style", "noscript", "template", "nav", "footer", "aside")
+# Note: <header> is deliberately NOT stripped — articles often wrap their H1 in
+# one. Page-level headers are excluded instead by preferring the <main>/<article>
+# root, plus the BOILERPLATE_HEADINGS filter for stray "Log in"-style labels.
+UNWANTED_TAGS = ("script", "style", "noscript", "template", "nav", "footer", "aside", "form")
+
+# Section headings that are page furniture, not article content. Real sites bury
+# these inside the main content area, so tag-stripping alone won't remove them.
+BOILERPLATE_HEADINGS = frozenset({
+    "references", "related", "related articles", "you might also like",
+    "about this article", "see also", "external links", "further reading",
+    "sources", "citations", "log in", "sign up", "sign in", "navigation menu",
+    "table of contents", "share", "comments", "advertisement",
+    "trending articles", "trending", "quizzes & games", "quizzes",
+    "reader success stories", "did this article help you?",
+    "featured articles", "popular categories", "newsletter",
+})
 
 
 class IngestError(Exception):
@@ -83,6 +98,8 @@ def extract_headers(soup: BeautifulSoup) -> list[dict[str, object]]:
         text = normalize_whitespace(header.get_text(" ", strip=True))
         if not text:
             continue
+        if text.lower() in BOILERPLATE_HEADINGS:
+            continue
         level = int(header.name[1])
         headers.append({"level": level, "text": text})
     return headers
@@ -104,6 +121,17 @@ def remove_unwanted_elements(soup: BeautifulSoup) -> None:
     for selector in UNWANTED_TAGS:
         for tag in soup.find_all(selector):
             tag.decompose()
+
+
+def count_html_structure(root) -> tuple[int, int]:
+    """Count list and table elements before their markup is flattened into text.
+
+    get_text() discards <ul>/<ol>/<table> structure, so later phases cannot
+    recover it from body_text. Counting here keeps the signal format-independent.
+    """
+    list_count = len(root.find_all(["ul", "ol"]))
+    table_count = len(root.find_all("table"))
+    return list_count, table_count
 
 
 def extract_visible_dates(soup: BeautifulSoup) -> tuple[Optional[str], Optional[str]]:
@@ -163,12 +191,15 @@ def extract_html_payload(html: str, source: str) -> dict[str, object]:
         Path(urlparse(source).path).stem if urlparse(source).scheme else None,
     ]) or "Untitled"
     meta_description = extract_meta_description(soup)
-    headers = extract_headers(soup)
     existing_schema = extract_schema_blocks(soup)
 
     body_soup = BeautifulSoup(html, "html.parser")
     remove_unwanted_elements(body_soup)
     body_root = body_soup.find("main") or body_soup.find("article") or body_soup.body or body_soup
+    # Extract headers and structure from the cleaned content root so page chrome
+    # (login links, nav, "You Might Also Like") never counts as article content.
+    headers = extract_headers(body_root)
+    list_count, table_count = count_html_structure(body_root)
     body_text = normalize_whitespace(body_root.get_text(" ", strip=True))
     if not body_text:
         raise IngestError("No readable body text was found in the HTML input.")
@@ -185,6 +216,8 @@ def extract_html_payload(html: str, source: str) -> dict[str, object]:
         "published_date": published_date,
         "updated_date": updated_date,
         "word_count": len(body_text.split()),
+        "list_count": list_count,
+        "table_count": table_count,
     }
 
 
@@ -202,8 +235,37 @@ def strip_markdown_line(line: str) -> str:
     return line.strip()
 
 
+def count_markdown_structure(lines: Iterable[str]) -> tuple[int, int]:
+    """Count list and table blocks from raw Markdown lines.
+
+    Must run before strip_markdown_line(), which removes the list markers.
+    A run of consecutive list items counts as one list; a run of consecutive
+    pipe-table rows counts as one table.
+    """
+    list_count = 0
+    table_count = 0
+    in_list = False
+    in_table = False
+
+    for line in lines:
+        stripped = line.strip()
+        is_table_row = stripped.count("|") >= 2
+        is_list_item = not is_table_row and bool(MARKDOWN_LIST_PATTERN.match(stripped))
+
+        if is_list_item and not in_list:
+            list_count += 1
+        if is_table_row and not in_table:
+            table_count += 1
+
+        in_list = is_list_item
+        in_table = is_table_row
+
+    return list_count, table_count
+
+
 def extract_markdown_payload(text: str, source: str) -> dict[str, object]:
     lines = text.splitlines()
+    list_count, table_count = count_markdown_structure(lines)
     headers = []
     body_lines = []
     title = None
@@ -240,6 +302,8 @@ def extract_markdown_payload(text: str, source: str) -> dict[str, object]:
         "published_date": None,
         "updated_date": None,
         "word_count": len(body_text.split()),
+        "list_count": list_count,
+        "table_count": table_count,
     }
 
 

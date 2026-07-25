@@ -92,6 +92,16 @@ def validate_payload(payload: Any) -> dict[str, Any]:
     if payload["word_count"] < 0:
         raise AnalyzerError("Field 'word_count' must be zero or greater.")
 
+    # Optional Phase 1 structure counts; absent in payloads ingested before they existed.
+    for field in ("list_count", "table_count"):
+        value = payload.get(field)
+        if value is None:
+            continue
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise AnalyzerError(f"Field '{field}' must be an integer or null.")
+        if value < 0:
+            raise AnalyzerError(f"Field '{field}' must be zero or greater.")
+
     return payload
 
 

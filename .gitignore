@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+
+# Secrets — never commit the API key
+.env
+
+# Generated pipeline output (test runs, client artifacts)
+output/
