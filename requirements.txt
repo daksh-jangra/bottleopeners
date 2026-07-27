@@ -3,3 +3,4 @@ beautifulsoup4
 python-dateutil
 anthropic
 flask
+trafilatura

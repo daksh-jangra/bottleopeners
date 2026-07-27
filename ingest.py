@@ -210,6 +210,55 @@ def extract_labeled_dates(text: str) -> tuple[Optional[str], Optional[str]]:
     return published, updated
 
 
+def _escape_text(value: str) -> str:
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _handrolled_root(html: str):
+    body_soup = BeautifulSoup(html, "html.parser")
+    remove_unwanted_elements(body_soup)
+    return body_soup.find("main") or body_soup.find("article") or body_soup.body or body_soup
+
+
+def _trafilatura_root(html: str, raw_soup: BeautifulSoup, title: str):
+    """Trafilatura-isolated article, or None if unavailable/empty."""
+    try:
+        import trafilatura
+        article_html = trafilatura.extract(
+            html, output_format="html", include_tables=True, include_comments=False
+        )
+    except Exception:
+        return None
+    if not article_html:
+        return None
+    soup = BeautifulSoup(article_html, "html.parser")
+    # Re-inject the page's real H1 only if trafilatura didn't keep one, so a page
+    # that already has its heading isn't given a duplicate.
+    if not soup.find("h1"):
+        h1_tag = raw_soup.find("h1")
+        heading = normalize_whitespace(h1_tag.get_text(" ", strip=True)) if h1_tag else title
+        if heading and heading != "Untitled":
+            h1 = soup.new_tag("h1")
+            h1.string = heading
+            soup.insert(0, h1)
+    return soup
+
+
+def extract_article_root(html: str, raw_soup: BeautifulSoup, title: str):
+    """Isolate the article body. Use trafilatura only when it clearly strips
+    chrome (much less text than hand-rolled cleaning) and keeps enough content;
+    otherwise the hand-rolled root is more reliable (and dodges trafilatura's
+    occasional duplication on small/simple pages)."""
+    hand_root = _handrolled_root(html)
+    traf_root = _trafilatura_root(html, raw_soup, title)
+    if traf_root is not None:
+        hand_words = len(normalize_whitespace(hand_root.get_text(" ", strip=True)).split())
+        traf_words = len(normalize_whitespace(traf_root.get_text(" ", strip=True)).split())
+        if traf_words >= 100 and traf_words < 0.9 * hand_words:
+            return traf_root
+    return hand_root
+
+
 def extract_html_payload(html: str, source: str) -> dict[str, object]:
     soup = BeautifulSoup(html, "html.parser")
     title = first_nonempty([
@@ -220,22 +269,21 @@ def extract_html_payload(html: str, source: str) -> dict[str, object]:
     meta_description = extract_meta_description(soup)
     existing_schema = extract_schema_blocks(soup)
 
-    body_soup = BeautifulSoup(html, "html.parser")
-    remove_unwanted_elements(body_soup)
-    body_root = body_soup.find("main") or body_soup.find("article") or body_soup.body or body_soup
-    # Extract headers and structure from the cleaned content root so page chrome
-    # (login links, nav, "You Might Also Like") never counts as article content.
-    headers = extract_headers(body_root)
-    list_count, table_count = count_html_structure(body_root)
-    body_text = normalize_whitespace(body_root.get_text(" ", strip=True))
+    # Isolate the real article, then read headers/structure/text from just that.
+    content_root = extract_article_root(html, soup, title)
+    headers = extract_headers(content_root)
+    list_count, table_count = count_html_structure(content_root)
+    body_text = normalize_whitespace(content_root.get_text(" ", strip=True))
     if not body_text:
         raise IngestError("No readable body text was found in the HTML input.")
 
     published_date, updated_date = extract_visible_dates(soup)
     # Fall back to a date shown as visible text (e.g. wikiHow's "Last Updated:
-    # March 10, 2025") when no date metadata was found. Metadata still wins.
+    # March 10, 2025"). Read it from the raw page, since article extraction may
+    # strip the byline line. Metadata still wins.
     if published_date is None or updated_date is None:
-        text_published, text_updated = extract_labeled_dates(body_text)
+        raw_text = normalize_whitespace(soup.get_text(" ", strip=True))
+        text_published, text_updated = extract_labeled_dates(raw_text)
         published_date = published_date or text_published
         updated_date = updated_date or text_updated
 
