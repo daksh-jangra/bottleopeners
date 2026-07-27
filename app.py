@@ -165,6 +165,45 @@ def api_competitors():
         return jsonify({"error": f"Unexpected error: {exc}"}), 500
 
 
+@app.post("/api/schema")
+def api_schema():
+    url = (request.json or {}).get("url", "").strip()
+    if not url:
+        return jsonify({"error": "Enter a page URL."}), 400
+    try:
+        payload = _fetch_payload(url)
+        schema = _schema_for(payload)
+        schema["title"] = payload.get("title")
+        return jsonify(schema)
+    except ingest.IngestError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+
+
+@app.post("/api/report")
+def api_report():
+    url = (request.json or {}).get("url", "").strip()
+    if not url:
+        return jsonify({"error": "Enter a page URL."}), 400
+    try:
+        payload = _fetch_payload(url)
+        analysis = analyzer.build_analysis(payload)
+        schema = _schema_for(payload)
+        report = rubric.build_report(analysis, schema, None)
+        return jsonify({
+            "title": payload.get("title"),
+            "score": report["score"],
+            "grade": report["grade"],
+            "status": report["status"],
+            "html": rubric.render_html(report),
+        })
+    except ingest.IngestError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+
+
 if __name__ == "__main__":
     load_dotenv()
     app.run(host="127.0.0.1", port=8760, debug=False)

@@ -74,17 +74,17 @@
     <nav>
       <a class="active" data-view="analyze">📈 Analyze</a>
       <a data-view="competitors">🏆 Competitors <span class="tag">Phase 6</span></a>
-      <a class="dim">✍️ Rewrite <span class="tag">on page</span></a>
-      <a class="dim">🧩 Schema</a>
-      <a class="dim">📄 Report</a>
-      <a class="dim">📚 Documentation</a>
+      <a data-view="rewrite">✍️ Rewrite <span class="tag">Phase 4</span></a>
+      <a data-view="schema">🧩 Schema</a>
+      <a data-view="report">📄 Report</a>
+      <a data-view="docs">📚 Documentation</a>
     </nav>
   </aside>
 
   <div class="main">
     <div class="topbar">🎯 <span>Live tool — analyze any page against AI citation-readiness signals.</span></div>
     <div class="body">
-      <div id="view-analyze">
+      <div id="view-analyze" class="view">
       <h1>Analyze a page</h1>
       <p class="sub">Paste a URL. We read the page, score how quotable it is to AI answer engines, and show the fixes ranked by impact.</p>
 
@@ -135,7 +135,7 @@
       </div><!-- /#results -->
       </div><!-- /#view-analyze -->
 
-      <div id="view-competitors" class="hidden">
+      <div id="view-competitors" class="view hidden">
         <h1>Competitor citations</h1>
         <p class="sub">Enter your domain and a few questions your customers ask. We ask Claude each one with live web search and show which sites are winning the citations.</p>
         <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
@@ -155,6 +155,81 @@
             <h2>Who's winning the citations</h2>
             <div id="c-table"></div>
           </div>
+        </div>
+      </div>
+
+      <div id="view-rewrite" class="view hidden">
+        <h1>Rewrite a page</h1>
+        <p class="sub">Paste a URL. Claude rewrites the weak parts for citation-readiness, then we re-score the rewrite to prove the lift.</p>
+        <div class="searchcard">
+          <input id="rw-url" type="url" placeholder="https://example.com/your-article">
+          <button class="primary" id="rw-go">Rewrite &amp; prove lift</button>
+        </div>
+        <p class="cur" style="margin-top:-10px">Uses Claude — takes ~30–60s and consumes API credit.</p>
+        <div id="rw-err" class="err hidden"></div>
+        <div id="rw-results" class="hidden"><div id="rw-proof" class="proof"></div></div>
+      </div>
+
+      <div id="view-schema" class="view hidden">
+        <h1>Generate schema markup</h1>
+        <p class="sub">Paste a URL. We detect the best schema type and generate ready-to-paste JSON-LD that helps Google understand the page.</p>
+        <div class="searchcard">
+          <input id="sc-url" type="url" placeholder="https://example.com/your-article">
+          <button class="primary" id="sc-go">Generate</button>
+        </div>
+        <div id="sc-err" class="err hidden"></div>
+        <div id="sc-results" class="hidden">
+          <div class="card">
+            <h2>Paste this into the page &lt;head&gt;</h2>
+            <p class="cur" id="sc-type"></p>
+            <pre id="sc-code"></pre>
+            <button class="ghost" id="sc-copy" style="margin-top:12px">Copy to clipboard</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-report" class="view hidden">
+        <h1>Client report</h1>
+        <p class="sub">Paste a URL. We generate a shareable one-page report — score, grade, ranked fixes, and schema — that you can download and hand to a client.</p>
+        <div class="searchcard">
+          <input id="rp-url" type="url" placeholder="https://example.com/your-article">
+          <button class="primary" id="rp-go">Generate report</button>
+        </div>
+        <div id="rp-err" class="err hidden"></div>
+        <div id="rp-results" class="hidden">
+          <div class="card">
+            <div class="hero">
+              <div class="grade" id="rp-grade">–</div>
+              <div><div class="score"><span id="rp-score">0</span><small>/100</small></div>
+                <div class="status" id="rp-status"></div></div>
+            </div>
+            <div style="margin-top:14px"><button class="ghost" id="rp-download">⬇ Download HTML report</button></div>
+          </div>
+          <div class="card"><h2>Report preview</h2>
+            <iframe id="rp-frame" style="width:100%;height:560px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-docs" class="view hidden">
+        <h1>How it works</h1>
+        <p class="sub">The tool runs a pipeline that reads a page, scores how quotable it is to AI answer engines, fixes it, and proves the improvement.</p>
+        <div class="card">
+          <h2>The tabs</h2>
+          <div class="item"><div class="item-h"><span>📈 Analyze</span></div><p class="action">Reads any page and scores it 0–100 on six citation-readiness signals, with fixes ranked by how many points each is worth.</p></div>
+          <div class="item"><div class="item-h"><span>✍️ Rewrite</span></div><p class="action">Claude rewrites the weak parts (generic headings, buried answers) and we re-score to prove the lift. Consumes API credit.</p></div>
+          <div class="item"><div class="item-h"><span>🧩 Schema</span></div><p class="action">Generates ready-to-paste JSON-LD structured-data markup so Google understands the page.</p></div>
+          <div class="item"><div class="item-h"><span>📄 Report</span></div><p class="action">A shareable one-page client report — score, grade, ranked fixes, schema — you can download as HTML.</p></div>
+          <div class="item"><div class="item-h"><span>🏆 Competitors</span></div><p class="action">Asks Claude your customers' questions with live web search and shows which rival domains win the citations. Slow (live search) and consumes credit.</p></div>
+        </div>
+        <div class="card">
+          <h2>What the score does and doesn't mean</h2>
+          <p class="action">The score measures on-page content signals — not real-world ranking or domain authority. A page can score low and still rank well if it has strong backlinks (and vice-versa). Use it to make content more quotable, not to predict rankings.</p>
+          <ul class="spec">
+            <li>Google AI Overviews has no public API, so it cannot be tested — only Claude (and future ChatGPT/Perplexity) can.</li>
+            <li>Recency needs a real published/updated date — the tool never invents one.</li>
+            <li>Rewrites and citation checks call Claude and consume API credit.</li>
+          </ul>
         </div>
       </div>
 
@@ -237,11 +312,75 @@ function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<'
 
 // --- view switching ---
 function showView(name){
-  document.querySelectorAll('#view-analyze, #view-competitors').forEach(v=>v.classList.add('hidden'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   document.getElementById('view-'+name).classList.remove('hidden');
   document.querySelectorAll('nav a[data-view]').forEach(a=>a.classList.toggle('active', a.dataset.view===name));
 }
 document.querySelectorAll('nav a[data-view]').forEach(a=>a.addEventListener('click',()=>showView(a.dataset.view)));
+
+// --- rewrite tab ---
+async function runRewriteTab(){
+  const url = $('rw-url').value.trim();
+  if(!url){ tabErr('rw-err','Enter a page URL.'); return; }
+  $('rw-err').classList.add('hidden'); $('rw-results').classList.add('hidden');
+  setBusy($('rw-go'), true, 'Rewriting with Claude…');
+  try{
+    const res = await fetch('/api/rewrite',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('rw-err', data.error||'Rewrite failed.'); return; }
+    $('rw-proof').innerHTML = `<b>Proof it works.</b> After Claude's rewrite, this page's score moves from <b>${data.before}</b> to <span class="up">${data.after}</span> (+${data.gain} pts).`
+      + (data.changes && data.changes.length ? '<ul class="spec">'+data.changes.map(c=>`<li>${escapeHtml(c)}</li>`).join('')+'</ul>' : '');
+    $('rw-results').classList.remove('hidden');
+  }catch(e){ tabErr('rw-err','Network error: '+e.message); }
+  finally{ setBusy($('rw-go'), false, 'Rewrite & prove lift'); }
+}
+
+// --- schema tab ---
+async function runSchema(){
+  const url = $('sc-url').value.trim();
+  if(!url){ tabErr('sc-err','Enter a page URL.'); return; }
+  $('sc-err').classList.add('hidden'); $('sc-results').classList.add('hidden');
+  setBusy($('sc-go'), true, 'Generating…');
+  try{
+    const res = await fetch('/api/schema',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('sc-err', data.error||'Failed.'); return; }
+    $('sc-type').textContent = 'Detected type: '+(data.detected_type||'');
+    $('sc-code').textContent = data.ready_to_paste||'';
+    $('sc-results').classList.remove('hidden');
+  }catch(e){ tabErr('sc-err','Network error: '+e.message); }
+  finally{ setBusy($('sc-go'), false, 'Generate'); }
+}
+
+// --- report tab ---
+let lastReportHtml = '';
+async function runReport(){
+  const url = $('rp-url').value.trim();
+  if(!url){ tabErr('rp-err','Enter a page URL.'); return; }
+  $('rp-err').classList.add('hidden'); $('rp-results').classList.add('hidden');
+  setBusy($('rp-go'), true, 'Building report…');
+  try{
+    const res = await fetch('/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('rp-err', data.error||'Failed.'); return; }
+    $('rp-grade').textContent = data.grade;
+    $('rp-grade').style.background = GRADE_COLORS[data.grade] || '#666';
+    $('rp-score').textContent = data.score;
+    $('rp-status').textContent = data.status;
+    lastReportHtml = data.html || '';
+    $('rp-frame').srcdoc = lastReportHtml;
+    $('rp-results').classList.remove('hidden');
+  }catch(e){ tabErr('rp-err','Network error: '+e.message); }
+  finally{ setBusy($('rp-go'), false, 'Generate report'); }
+}
+function downloadReport(){
+  if(!lastReportHtml) return;
+  const blob = new Blob([lastReportHtml], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'citation-report.html'; a.click();
+  URL.revokeObjectURL(a.href);
+}
+function tabErr(id, msg){ const e=$(id); e.textContent=msg; e.classList.remove('hidden'); }
 
 // --- competitors ---
 async function runCompetitors(){
@@ -277,6 +416,14 @@ $('go').addEventListener('click', analyze);
 $('url').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });
 $('rewriteBtn').addEventListener('click', rewrite);
 $('c-go').addEventListener('click', runCompetitors);
+$('rw-go').addEventListener('click', runRewriteTab);
+$('rw-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runRewriteTab(); });
+$('sc-go').addEventListener('click', runSchema);
+$('sc-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runSchema(); });
+$('sc-copy').addEventListener('click', ()=>navigator.clipboard.writeText($('sc-code').textContent));
+$('rp-go').addEventListener('click', runReport);
+$('rp-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runReport(); });
+$('rp-download').addEventListener('click', downloadReport);
 </script>
 </body>
 </html>
