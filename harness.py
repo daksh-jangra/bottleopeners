@@ -151,6 +151,73 @@ def run_claude(query: str, model: str) -> tuple[list[str], str]:
     return urls, " ".join(answer_parts).strip()
 
 
+SENTIMENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "mentioned": {"type": "boolean"},
+        "sentiment": {"type": "string", "enum": ["positive", "neutral", "negative", "not_mentioned"]},
+        "evidence": {"type": "string"},
+    },
+    "required": ["mentioned", "sentiment", "evidence"],
+    "additionalProperties": False,
+}
+
+
+def classify_sentiment(brand: str, answer: str, model: str) -> dict[str, Any]:
+    """Classify how an AI answer portrays a brand: mentioned? positive/neutral/negative?"""
+    try:
+        import anthropic
+    except ImportError as exc:
+        raise HarnessError("The 'anthropic' package is not installed. Run: pip install anthropic") from exc
+
+    prompt = (
+        f'An AI assistant gave this answer to a user question:\n\n"""{answer}"""\n\n'
+        f'How does this answer portray the brand "{brand}"? If the brand is not '
+        f'mentioned at all, set mentioned=false and sentiment="not_mentioned". '
+        f'Otherwise judge the sentiment of how it is portrayed (positive, neutral, '
+        f'or negative) and quote the relevant phrase as evidence.'
+    )
+    client = anthropic.Anthropic()
+    try:
+        message = client.messages.create(
+            model=model,
+            max_tokens=400,
+            output_config={"format": {"type": "json_schema", "schema": SENTIMENT_SCHEMA}},
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.APIError as exc:
+        raise HarnessError(f"Claude API request failed: {exc}") from exc
+
+    text = next((getattr(b, "text", "") for b in message.content if getattr(b, "type", None) == "text"), None)
+    if not text:
+        return {"mentioned": False, "sentiment": "not_mentioned", "evidence": ""}
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return {"mentioned": False, "sentiment": "not_mentioned", "evidence": ""}
+
+
+def run_sentiment(brand: str, queries: list[str], model: str) -> dict[str, Any]:
+    """For each query: get the AI's answer, then classify brand sentiment. Aggregate a mix."""
+    counts = {"positive": 0, "neutral": 0, "negative": 0, "not_mentioned": 0}
+    results: list[dict[str, Any]] = []
+    for query in queries:
+        _urls, answer = run_claude(query, model)
+        verdict = classify_sentiment(brand, answer, model)
+        sentiment = verdict.get("sentiment", "not_mentioned")
+        if sentiment not in counts:
+            sentiment = "not_mentioned"
+        counts[sentiment] += 1
+        results.append({
+            "query": query,
+            "sentiment": sentiment,
+            "evidence": str(verdict.get("evidence", ""))[:200],
+        })
+    total = len(queries)
+    mix = {k: {"count": v, "pct": round(100 * v / total) if total else 0} for k, v in counts.items()}
+    return {"brand": brand, "queries": total, "mix": mix, "results": results}
+
+
 # Each provider: label, the env var its key lives in, and a runner (None = not
 # yet wired up). Slots are registered even when unimplemented so the pluggable
 # design is explicit and the report can show what's covered vs. not.

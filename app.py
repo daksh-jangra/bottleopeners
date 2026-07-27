@@ -165,6 +165,29 @@ def api_competitors():
         return jsonify({"error": f"Unexpected error: {exc}"}), 500
 
 
+@app.post("/api/sentiment")
+def api_sentiment():
+    data = request.json or {}
+    brand = (data.get("brand") or "").strip()
+    queries = data.get("queries") or []
+    if isinstance(queries, str):
+        queries = queries.splitlines()
+    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:6]
+
+    if not brand:
+        return jsonify({"error": "Enter your brand name."}), 400
+    if not queries:
+        return jsonify({"error": "Enter at least one question."}), 400
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run sentiment checks."}), 400
+    try:
+        return jsonify(harness.run_sentiment(brand, queries, DEFAULT_MODEL))
+    except harness.HarnessError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+
+
 @app.post("/api/schema")
 def api_schema():
     url = (request.json or {}).get("url", "").strip()

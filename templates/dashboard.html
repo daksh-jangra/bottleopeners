@@ -20,6 +20,9 @@
   .ws small{color:var(--muted)}
   nav a{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:9px;color:var(--ink);text-decoration:none;font-weight:500;margin:2px 0;cursor:pointer}
   nav a.active{background:#eaf3ee;color:var(--green)}
+  nav a svg{width:19px;height:19px;flex:none;stroke:#9aa3a9}
+  nav a:hover svg{stroke:var(--ink)}
+  nav a.active svg{stroke:var(--green)}
   nav a.dim{color:#aab2ac} nav a.dim:hover{background:transparent;cursor:default}
   nav .tag{margin-left:auto;font-size:11px;background:#eef0ec;color:#8b948d;border-radius:20px;padding:1px 8px}
   /* main */
@@ -64,25 +67,33 @@
   .spin{display:inline-block;width:15px;height:15px;border:2px solid #ffffff88;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:7px}
   @keyframes spin{to{transform:rotate(360deg)}}
   .foot{color:#9aa1ac;font-size:12.5px;margin:6px 0 30px}
+  .mixbar{display:flex;height:26px;border-radius:8px;overflow:hidden;background:#eef0ec}
+  .mixbar span{display:block;height:100%}
+  .mixlegend{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px}
+  .mixlegend .lg{display:flex;align-items:baseline;gap:7px}
+  .mixlegend .dot{width:10px;height:10px;border-radius:50%;align-self:center}
+  .mixlegend b{font-size:20px} .mixlegend small{color:var(--muted)}
+  .pill{font-size:12px;font-weight:700;border-radius:20px;padding:2px 9px;color:#fff}
 </style>
 </head>
 <body>
 <div class="app">
   <aside class="side">
-    <div class="brand">◆ citepilot</div>
+    <div class="brand">citepilot</div>
     <div class="ws"><div class="ic">CP</div><div><div style="font-weight:700">Your workspace</div><small>Citation readiness</small></div></div>
     <nav>
-      <a class="active" data-view="analyze">📈 Analyze</a>
-      <a data-view="competitors">🏆 Competitors <span class="tag">Phase 6</span></a>
-      <a data-view="rewrite">✍️ Rewrite <span class="tag">Phase 4</span></a>
-      <a data-view="schema">🧩 Schema</a>
-      <a data-view="report">📄 Report</a>
-      <a data-view="docs">📚 Documentation</a>
+      <a class="active" data-view="analyze"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg> Analyze</a>
+      <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
+      <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
+      <a data-view="rewrite"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Rewrite <span class="tag">Phase 4</span></a>
+      <a data-view="schema"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Schema</a>
+      <a data-view="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg> Report</a>
+      <a data-view="docs"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg> Documentation</a>
     </nav>
   </aside>
 
   <div class="main">
-    <div class="topbar">🎯 <span>Live tool — analyze any page against AI citation-readiness signals.</span></div>
+    <div class="topbar"><span>Live tool — analyze any page against AI citation-readiness signals.</span></div>
     <div class="body">
       <div id="view-analyze" class="view">
       <h1>Analyze a page</h1>
@@ -158,6 +169,26 @@
         </div>
       </div>
 
+      <div id="view-sentiment" class="view hidden">
+        <h1>Brand sentiment</h1>
+        <p class="sub">Enter your brand and a few questions your customers ask. We get each AI answer, then classify whether your brand is mentioned and how it's portrayed — positive, neutral, or negative.</p>
+        <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
+          <input id="se-brand" type="text" placeholder="your brand name, e.g. KitchenAid">
+          <textarea id="se-queries" rows="4" placeholder="One question per line, e.g.&#10;what is the best coffee machine descaler&#10;how do I remove limescale from a coffee maker" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
+          <div><button class="primary" id="se-go">Run sentiment check</button>
+          <span class="cur" style="margin-left:10px">Two AI calls per question (answer + classify) — a few questions take a couple of minutes.</span></div>
+        </div>
+        <div id="se-err" class="err hidden"></div>
+        <div id="se-results" class="hidden">
+          <div class="card">
+            <h2>Sentiment mix</h2>
+            <div class="mixbar" id="se-mixbar"></div>
+            <div class="mixlegend" id="se-legend"></div>
+          </div>
+          <div class="card"><h2>Per question</h2><div id="se-table"></div></div>
+        </div>
+      </div>
+
       <div id="view-rewrite" class="view hidden">
         <h1>Rewrite a page</h1>
         <p class="sub">Paste a URL. Claude rewrites the weak parts for citation-readiness, then we re-score the rewrite to prove the lift.</p>
@@ -216,11 +247,12 @@
         <p class="sub">The tool runs a pipeline that reads a page, scores how quotable it is to AI answer engines, fixes it, and proves the improvement.</p>
         <div class="card">
           <h2>The tabs</h2>
-          <div class="item"><div class="item-h"><span>📈 Analyze</span></div><p class="action">Reads any page and scores it 0–100 on six citation-readiness signals, with fixes ranked by how many points each is worth.</p></div>
-          <div class="item"><div class="item-h"><span>✍️ Rewrite</span></div><p class="action">Claude rewrites the weak parts (generic headings, buried answers) and we re-score to prove the lift. Consumes API credit.</p></div>
-          <div class="item"><div class="item-h"><span>🧩 Schema</span></div><p class="action">Generates ready-to-paste JSON-LD structured-data markup so Google understands the page.</p></div>
-          <div class="item"><div class="item-h"><span>📄 Report</span></div><p class="action">A shareable one-page client report — score, grade, ranked fixes, schema — you can download as HTML.</p></div>
-          <div class="item"><div class="item-h"><span>🏆 Competitors</span></div><p class="action">Asks Claude your customers' questions with live web search and shows which rival domains win the citations. Slow (live search) and consumes credit.</p></div>
+          <div class="item"><div class="item-h"><span>Analyze</span></div><p class="action">Reads any page and scores it 0–100 on six citation-readiness signals, with fixes ranked by how many points each is worth.</p></div>
+          <div class="item"><div class="item-h"><span>Rewrite</span></div><p class="action">Claude rewrites the weak parts (generic headings, buried answers) and we re-score to prove the lift. Consumes API credit.</p></div>
+          <div class="item"><div class="item-h"><span>Schema</span></div><p class="action">Generates ready-to-paste JSON-LD structured-data markup so Google understands the page.</p></div>
+          <div class="item"><div class="item-h"><span>Report</span></div><p class="action">A shareable one-page client report — score, grade, ranked fixes, schema — you can download as HTML.</p></div>
+          <div class="item"><div class="item-h"><span>Competitors</span></div><p class="action">Asks Claude your customers' questions with live web search and shows which rival domains win the citations. Slow (live search) and consumes credit.</p></div>
+          <div class="item"><div class="item-h"><span>Sentiment</span></div><p class="action">Gets each AI answer to your customers' questions, then classifies how your brand is portrayed — positive, neutral, or negative.</p></div>
         </div>
         <div class="card">
           <h2>What the score does and doesn't mean</h2>
@@ -382,6 +414,46 @@ function downloadReport(){
 }
 function tabErr(id, msg){ const e=$(id); e.textContent=msg; e.classList.remove('hidden'); }
 
+// --- sentiment tab ---
+const SENTIMENT_META = {
+  positive:{label:'Positive', color:'#16a34a'},
+  neutral:{label:'Neutral', color:'#64748b'},
+  negative:{label:'Negative', color:'#dc2626'},
+  not_mentioned:{label:'Not mentioned', color:'#cbd5e1'},
+};
+async function runSentiment(){
+  const brand = $('se-brand').value.trim();
+  const queries = $('se-queries').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!brand){ tabErr('se-err','Enter your brand name.'); return; }
+  if(!queries.length){ tabErr('se-err','Enter at least one question.'); return; }
+  $('se-err').classList.add('hidden'); $('se-results').classList.add('hidden');
+  setBusy($('se-go'), true, 'Running…');
+  try{
+    const res = await fetch('/api/sentiment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand,queries})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('se-err', data.error||'Failed.'); return; }
+    renderSentiment(data);
+  }catch(e){ tabErr('se-err','Network error: '+e.message); }
+  finally{ setBusy($('se-go'), false, 'Run sentiment check'); }
+}
+function renderSentiment(d){
+  const order = ['positive','neutral','negative','not_mentioned'];
+  $('se-mixbar').innerHTML = order.map(k=>{
+    const pct = (d.mix[k]||{}).pct||0;
+    return pct>0 ? `<span style="width:${pct}%;background:${SENTIMENT_META[k].color}" title="${SENTIMENT_META[k].label} ${pct}%"></span>` : '';
+  }).join('');
+  $('se-legend').innerHTML = order.map(k=>{
+    const m=d.mix[k]||{count:0,pct:0};
+    return `<div class="lg"><span class="dot" style="background:${SENTIMENT_META[k].color}"></span>
+      <div><div><b>${m.count}</b> <small>${m.pct}%</small></div><small>${SENTIMENT_META[k].label}</small></div></div>`;
+  }).join('');
+  $('se-table').innerHTML = (d.results||[]).map(r=>`
+    <div class="item"><div class="item-h"><span>${escapeHtml(r.query)}</span>
+    <span class="pill" style="background:${SENTIMENT_META[r.sentiment].color}">${SENTIMENT_META[r.sentiment].label}</span></div>
+    ${r.evidence?`<p class="cur">“${escapeHtml(r.evidence)}”</p>`:''}</div>`).join('');
+  $('se-results').classList.remove('hidden');
+}
+
 // --- competitors ---
 async function runCompetitors(){
   const target = $('c-target').value.trim();
@@ -416,6 +488,7 @@ $('go').addEventListener('click', analyze);
 $('url').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });
 $('rewriteBtn').addEventListener('click', rewrite);
 $('c-go').addEventListener('click', runCompetitors);
+$('se-go').addEventListener('click', runSentiment);
 $('rw-go').addEventListener('click', runRewriteTab);
 $('rw-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runRewriteTab(); });
 $('sc-go').addEventListener('click', runSchema);
