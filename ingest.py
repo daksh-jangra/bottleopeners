@@ -44,6 +44,7 @@ BOILERPLATE_HEADINGS = frozenset({
     "trending articles", "trending", "quizzes & games", "quizzes",
     "reader success stories", "did this article help you?",
     "featured articles", "popular categories", "newsletter",
+    "featured videos", "watch articles", "video", "videos",
 })
 
 
@@ -183,6 +184,32 @@ def extract_visible_dates(soup: BeautifulSoup) -> tuple[Optional[str], Optional[
     return published_date, updated_date
 
 
+# Many pages show a date as visible text ("Last Updated: March 10, 2025")
+# rather than in a <meta>/<time> tag. Capture just the date substring after a
+# published/updated label so it can be parsed on its own.
+_DATE_SUBSTRING = (
+    r"([A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4}"  # March 10, 2025
+    r"|\d{1,2}\s+[A-Za-z]{3,9}\.?\s+\d{4}"      # 10 March 2025
+    r"|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}"           # 03/10/2025
+    r"|\d{4}-\d{2}-\d{2})"                        # 2025-03-10
+)
+UPDATED_TEXT_RE = re.compile(r"(?:last\s+updated|updated)(?:\s+on)?\s*:?\s*" + _DATE_SUBSTRING, re.IGNORECASE)
+PUBLISHED_TEXT_RE = re.compile(r"(?:published|posted|first\s+published)(?:\s+on)?\s*:?\s*" + _DATE_SUBSTRING, re.IGNORECASE)
+
+
+def extract_labeled_dates(text: str) -> tuple[Optional[str], Optional[str]]:
+    """Find published/updated dates written as visible text in the page body."""
+    published = None
+    updated = None
+    match = PUBLISHED_TEXT_RE.search(text)
+    if match:
+        published = parse_date(match.group(1))
+    match = UPDATED_TEXT_RE.search(text)
+    if match:
+        updated = parse_date(match.group(1))
+    return published, updated
+
+
 def extract_html_payload(html: str, source: str) -> dict[str, object]:
     soup = BeautifulSoup(html, "html.parser")
     title = first_nonempty([
@@ -205,6 +232,12 @@ def extract_html_payload(html: str, source: str) -> dict[str, object]:
         raise IngestError("No readable body text was found in the HTML input.")
 
     published_date, updated_date = extract_visible_dates(soup)
+    # Fall back to a date shown as visible text (e.g. wikiHow's "Last Updated:
+    # March 10, 2025") when no date metadata was found. Metadata still wins.
+    if published_date is None or updated_date is None:
+        text_published, text_updated = extract_labeled_dates(body_text)
+        published_date = published_date or text_published
+        updated_date = updated_date or text_updated
 
     return {
         "source": source,
