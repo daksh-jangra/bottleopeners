@@ -32,8 +32,13 @@ OG_REQUIRED = ("og:title", "og:description", "og:image")
 OG_OPTIONAL = ("og:url", "og:type")
 
 
-def _row(category: str, check: str, status: str, detail: str) -> dict[str, Any]:
-    return {"category": category, "check": check, "status": status, "detail": detail}
+def _row(category: str, check: str, status: str, detail: str,
+         fix: Optional[str] = None) -> dict[str, Any]:
+    """A single audit check. `fix` names the tab that can fix it when the check
+    is not passing ("rewrite" or "schema"), or None for advice-only checks
+    (HTTPS, canonical, etc.) the tool can't auto-fix."""
+    return {"category": category, "check": check, "status": status,
+            "detail": detail, "fix": fix}
 
 
 def _ratio_status(score: int, max_score: int) -> str:
@@ -96,11 +101,11 @@ def _check_schema(payload: dict[str, Any]) -> dict[str, Any]:
     types = _extract_schema_types(payload.get("existing_schema"))
     if not types:
         return _row("Structure & Schema", "Schema.org markup", FAIL,
-                    "No JSON-LD structured data found on the page.")
+                    "No JSON-LD structured data found on the page.", fix="schema")
     label = ", ".join(types[:6]) + ("…" if len(types) > 6 else "")
     plural = "type" if len(types) == 1 else "types"
     return _row("Structure & Schema", "Schema.org markup", PASS,
-                f"{len(types)} {plural}: {label}")
+                f"{len(types)} {plural}: {label}", fix="schema")
 
 
 def _check_faq(payload: dict[str, Any]) -> dict[str, Any]:
@@ -109,10 +114,10 @@ def _check_faq(payload: dict[str, Any]) -> dict[str, Any]:
     has_faq = any(t in ("FAQPage", "QAPage", "Question") for t in types)
     if not has_faq:
         return _row("Structure & Schema", "FAQ schema", FAIL,
-                    "No FAQPage / Question markup - add Q&A schema for answer engines.")
+                    "No FAQPage / Question markup - add Q&A schema for answer engines.", fix="schema")
     questions = len(re.findall(r'"@type"\s*:\s*"Question"', schema_text))
     detail = f"{questions} question{'' if questions == 1 else 's'}" if questions else "FAQ markup present"
-    return _row("Structure & Schema", "FAQ schema", PASS, detail)
+    return _row("Structure & Schema", "FAQ schema", PASS, detail, fix="schema")
 
 
 def _og_map(soup: BeautifulSoup) -> dict[str, str]:
@@ -155,13 +160,13 @@ def _check_meta_description(payload: dict[str, Any]) -> dict[str, Any]:
     meta = payload.get("meta_description")
     if not meta:
         return _row("Content Quality", "Meta description", FAIL,
-                    "No meta description - add a concise page summary.")
+                    "No meta description - add a concise page summary.", fix="rewrite")
     length = len(meta)
     if 50 <= length <= 170:
         return _row("Content Quality", "Meta description", PASS, f"{length} characters.")
     hint = "too short" if length < 50 else "too long"
     return _row("Content Quality", "Meta description", WARN,
-                f"{length} characters ({hint}); aim for 50-170.")
+                f"{length} characters ({hint}); aim for 50-170.", fix="rewrite")
 
 
 # factor, label, pass detail, fix hint (used when warn/fail and no problem issue).
@@ -195,7 +200,10 @@ def _content_rows(analysis: dict[str, Any]) -> list[dict[str, Any]]:
         else:
             detail = _negative_issue(section) or fix_detail
         detail = f"{detail} ({score}/{max_score} pts)"
-        rows.append(_row("Content Quality", label, status, detail))
+        # Rewrite can fix every content factor except freshness — the tool
+        # never invents a date, so that one stays advice-only.
+        fix = None if factor == "recency_signals" else "rewrite"
+        rows.append(_row("Content Quality", label, status, detail, fix=fix))
     return rows
 
 

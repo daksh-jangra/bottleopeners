@@ -89,6 +89,9 @@
   .chk .mk{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;margin-top:1px}
   .chk .mk.pass{background:#16a34a} .chk .mk.warn{background:#d97706} .chk .mk.fail{background:#dc2626}
   .chk .nm{font-weight:600} .chk .dt{color:var(--muted);font-size:13px;margin-top:1px;word-break:break-word}
+  .chk .txt{flex:1;min-width:0}
+  .chk .fixbtn{align-self:center;flex:none;background:var(--green);color:#fff;border:0;border-radius:8px;padding:6px 12px;font:inherit;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap}
+  .chk .fixbtn:hover{background:var(--green-2)}
   /* documentation */
   .docs{display:flex;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}
   .docs-side{width:236px;border-right:1px solid var(--line);padding:14px 12px;flex:none}
@@ -543,14 +546,23 @@ function renderAudit(d){
     <div class="s"><b style="color:#d97706">${s.warn}</b><small>Warnings</small></div>
     <div class="s"><b style="color:#dc2626">${s.fail}</b><small>Failing</small></div>
     <div class="s"><b>${s.total}</b><small>Checks</small></div>`;
+  const url = d.source || ($('au-url').value||'').trim();
   $('au-body').innerHTML = (d.categories||[]).map(cat=>`
     <div class="catname">${escapeHtml(cat.name)}</div>
     ${cat.checks.map(c=>`
       <div class="chk">
         <div class="mk ${c.status}">${AUDIT_MARK[c.status]||'?'}</div>
-        <div><div class="nm">${escapeHtml(c.check)}</div><div class="dt">${escapeHtml(c.detail)}</div></div>
+        <div class="txt"><div class="nm">${escapeHtml(c.check)}</div><div class="dt">${escapeHtml(c.detail)}</div></div>
+        ${(c.status!=='pass' && c.fix) ? `<button class="fixbtn" data-fix="${c.fix}" data-url="${escapeHtml(url)}">Fix this →</button>` : ''}
       </div>`).join('')}`).join('');
+  $('au-body').querySelectorAll('.fixbtn').forEach(b=>b.addEventListener('click',()=>fixFromAudit(b.dataset.fix, b.dataset.url)));
   $('au-results').classList.remove('hidden');
+}
+function fixFromAudit(tab, url){
+  showView(tab);
+  if(tab==='schema'){ $('sc-url').value = url; runSchema(); }           // free — run it
+  else if(tab==='rewrite'){ $('rw-url').value = url; $('rw-url').focus(); // paid — land on the button, don't auto-spend
+    $('rw-url').scrollIntoView({behavior:'smooth',block:'center'}); }
 }
 function exportAudit(){
   if(!lastAudit) return;
