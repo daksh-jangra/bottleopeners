@@ -2,7 +2,7 @@
 
 Where the rubric (Phase 5) rolls everything into a single 0-100 score, this
 module presents the same underlying signals as a category-grouped checklist of
-discrete checks — each one pass / warn / fail — the way a site auditor would.
+discrete checks - each one pass / warn / fail - the way a site auditor would.
 
 It reuses the Phase 2 analysis for content-quality checks and adds a handful of
 cheap technical checks read straight from the fetched page (Open Graph tags,
@@ -10,9 +10,9 @@ canonical tag, HTTPS + HSTS, JS-free rendering). No new dependencies, no model
 calls, no extra network requests beyond the single page fetch the caller does.
 
 Statuses:
-  pass  — the check is satisfied
-  warn  — present but weak / incomplete
-  fail  — missing or clearly inadequate
+  pass  - the check is satisfied
+  warn  - present but weak / incomplete
+  fail  - missing or clearly inadequate
 """
 
 from __future__ import annotations
@@ -109,7 +109,7 @@ def _check_faq(payload: dict[str, Any]) -> dict[str, Any]:
     has_faq = any(t in ("FAQPage", "QAPage", "Question") for t in types)
     if not has_faq:
         return _row("Structure & Schema", "FAQ schema", FAIL,
-                    "No FAQPage / Question markup — add Q&A schema for answer engines.")
+                    "No FAQPage / Question markup - add Q&A schema for answer engines.")
     questions = len(re.findall(r'"@type"\s*:\s*"Question"', schema_text))
     detail = f"{questions} question{'' if questions == 1 else 's'}" if questions else "FAQ markup present"
     return _row("Structure & Schema", "FAQ schema", PASS, detail)
@@ -146,7 +146,7 @@ def _check_canonical(soup: BeautifulSoup) -> dict[str, Any]:
     if href:
         return _row("Structure & Schema", "Canonical tag", PASS, href)
     return _row("Structure & Schema", "Canonical tag", FAIL,
-                "No <link rel=\"canonical\"> — add one to avoid duplicate-content ambiguity.")
+                "No <link rel=\"canonical\"> - add one to avoid duplicate-content ambiguity.")
 
 
 # --- Content Quality --------------------------------------------------------
@@ -155,13 +155,13 @@ def _check_meta_description(payload: dict[str, Any]) -> dict[str, Any]:
     meta = payload.get("meta_description")
     if not meta:
         return _row("Content Quality", "Meta description", FAIL,
-                    "No meta description — add a concise page summary.")
+                    "No meta description - add a concise page summary.")
     length = len(meta)
     if 50 <= length <= 170:
         return _row("Content Quality", "Meta description", PASS, f"{length} characters.")
     hint = "too short" if length < 50 else "too long"
     return _row("Content Quality", "Meta description", WARN,
-                f"{length} characters ({hint}); aim for 50–170.")
+                f"{length} characters ({hint}); aim for 50-170.")
 
 
 # factor, label, pass detail, fix hint (used when warn/fail and no problem issue).
@@ -205,7 +205,7 @@ def _check_https(final_url: str) -> dict[str, Any]:
     scheme = urlparse(final_url).scheme.lower()
     if scheme == "https":
         return _row("Technical", "HTTPS", PASS, "Served over HTTPS.")
-    return _row("Technical", "HTTPS", FAIL, f"Served over {scheme or 'http'} — not encrypted.")
+    return _row("Technical", "HTTPS", FAIL, f"Served over {scheme or 'http'} - not encrypted.")
 
 
 def _check_hsts(final_url: str, headers: dict[str, str]) -> dict[str, Any]:
@@ -220,7 +220,7 @@ def _check_hsts(final_url: str, headers: dict[str, str]) -> dict[str, Any]:
     if urlparse(final_url).scheme.lower() != "https":
         return _row("Technical", "HSTS", FAIL, "No HSTS (page is not HTTPS).")
     return _row("Technical", "HSTS", WARN,
-                "No Strict-Transport-Security header — add one to enforce HTTPS.")
+                "No Strict-Transport-Security header - add one to enforce HTTPS.")
 
 
 # --- Server-Side Rendering --------------------------------------------------
@@ -235,9 +235,9 @@ def _check_js_free(payload: dict[str, Any]) -> dict[str, Any]:
                     f"{words} words readable without JavaScript.")
     if words >= 30:
         return _row("Server-Side Rendering", "JS-free rendering", WARN,
-                    f"Only {words} words in raw HTML — some content may need JavaScript.")
+                    f"Only {words} words in raw HTML - some content may need JavaScript.")
     return _row("Server-Side Rendering", "JS-free rendering", FAIL,
-                f"Only {words} words in raw HTML — content likely requires JavaScript.")
+                f"Only {words} words in raw HTML - content likely requires JavaScript.")
 
 
 # --- Assembly ---------------------------------------------------------------

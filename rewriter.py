@@ -108,7 +108,7 @@ SYSTEM_PROMPT = (
     "principles:\n"
     "1. Answer-first: open the very first sentence of the body with a short "
     "definition (under 18 words) using a form of 'is', 'are', 'means', "
-    "'requires', or 'includes' — e.g. 'Descaling is the removal of mineral "
+    "'requires', or 'includes' - e.g. 'Descaling is the removal of mineral "
     "buildup from a coffee maker.' Then open each following section with a "
     "direct, quotable answer in its first one or two sentences.\n"
     "2. Fact density: prefer concrete numbers, dates, and named entities over "

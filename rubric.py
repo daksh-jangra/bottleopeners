@@ -3,7 +3,7 @@
 Turns a Phase 2 analysis into a client-facing report: an overall score and
 grade, a fix list ranked by how many points each fix is worth, the strengths
 to keep, the paste-ready schema (if provided), and before/after proof (if a
-Phase 4 rewrite is provided). This phase is rule-based and free — it calls no
+Phase 4 rewrite is provided). This phase is rule-based and free - it calls no
 model and reuses the Phase 2 scorer.
 
 Usage:
@@ -41,7 +41,7 @@ RECOMMENDATIONS = {
     "list_table_presence": "Present steps as numbered lists and comparisons as tables so AI can extract discrete points.",
     "factual_specificity": "Add concrete numbers, dates, and named entities; replace vague phrasing with verifiable facts.",
     "byline_authority": "Add a visible author byline, the publisher name, and a meta description that summarizes the page.",
-    "recency_signals": "Add the page's real published or 'last updated' date — use the actual date; never invent one.",
+    "recency_signals": "Add the page's real published or 'last updated' date - use the actual date; never invent one.",
 }
 
 
@@ -93,12 +93,12 @@ def grade_for(total: int) -> str:
 
 def status_for(total: int) -> str:
     if total >= 85:
-        return "Strong — citation-ready"
+        return "Strong - citation-ready"
     if total >= 70:
-        return "Good — a few targeted fixes"
+        return "Good - a few targeted fixes"
     if total >= 55:
-        return "Needs work — several gaps to close"
-    return "Poor — major gaps to close"
+        return "Needs work - several gaps to close"
+    return "Poor - major gaps to close"
 
 
 def build_report(
@@ -179,7 +179,7 @@ def render_html(report: dict[str, Any]) -> str:
     strengths_html = "".join(
         f'<li>{escape(s["label"])} <b>{s["score"]}/{s["max"]}</b></li>'
         for s in report["strengths"]
-    ) or "<li>None yet — every factor has room to improve.</li>"
+    ) or "<li>None yet - every factor has room to improve.</li>"
 
     imp = report.get("improvement")
     imp_html = ""
@@ -235,7 +235,7 @@ pre{{background:#0b0d12;color:#c9d1d9;border-radius:8px;padding:14px;overflow:au
 {imp_html}
 
 <div class="card"><h2>Top fixes, ranked by impact</h2>
-{prio_html or '<p>No fixes needed — every factor is already at full marks.</p>'}</div>
+{prio_html or '<p>No fixes needed - every factor is already at full marks.</p>'}</div>
 
 <div class="card"><h2>Strengths to keep</h2><ul>{strengths_html}</ul></div>
 

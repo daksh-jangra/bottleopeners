@@ -3,7 +3,7 @@
 This is the foundation for "monitoring over time": every analyze/sentiment run
 is stored with a timestamp, so the dashboard can show history and trends and a
 "pulse" can re-check tracked targets on demand. Kept dependency-free (stdlib
-sqlite3) and local — a single citepilot.db file.
+sqlite3) and local - a single citepilot.db file.
 """
 
 from __future__ import annotations

@@ -224,7 +224,7 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "label": "Google AI Overviews",
         "env": None,
         "runner": None,
-        "note": "No public API — AI Overviews cannot be tested programmatically.",
+        "note": "No public API - AI Overviews cannot be tested programmatically.",
     },
 }
 

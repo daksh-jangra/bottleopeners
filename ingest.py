@@ -31,7 +31,7 @@ from dateutil import parser as date_parser
 from common import slugify
 
 DEFAULT_TIMEOUT_SECONDS = 15
-# Note: <header> is deliberately NOT stripped — articles often wrap their H1 in
+# Note: <header> is deliberately NOT stripped - articles often wrap their H1 in
 # one. Page-level headers are excluded instead by preferring the <main>/<article>
 # root, plus the BOILERPLATE_HEADINGS filter for stray "Log in"-style labels.
 UNWANTED_TAGS = ("script", "style", "noscript", "template", "nav", "footer", "aside", "form")

@@ -163,7 +163,7 @@
   </aside>
 
   <div class="main">
-    <div class="topbar"><span>Live tool — analyze any page against AI citation-readiness signals.</span></div>
+    <div class="topbar"><span>Live tool - analyze any page against AI citation-readiness signals.</span></div>
     <div class="body">
       <div id="view-analyze" class="view">
       <h1>Analyze a page</h1>
@@ -188,7 +188,7 @@
 
         <div class="card">
           <div class="hero">
-            <div class="grade" id="grade">–</div>
+            <div class="grade" id="grade">-</div>
             <div><div class="score"><span id="score">0</span><small>/100</small></div>
               <div class="status" id="status"></div></div>
             <div class="meta" id="meta"></div>
@@ -223,7 +223,7 @@
           <input id="c-target" type="text" placeholder="your domain, e.g. yoursite.com">
           <textarea id="c-queries" rows="4" placeholder="One question per line, e.g.&#10;how do I descale a coffee maker&#10;best way to remove limescale from a kettle" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
           <div><button class="primary" id="c-go">Run citation check</button>
-          <span class="cur" style="margin-left:10px">Live web searches — a few queries can take a couple of minutes.</span></div>
+          <span class="cur" style="margin-left:10px">Live web searches - a few queries can take a couple of minutes.</span></div>
         </div>
         <div id="c-err" class="err hidden"></div>
         <div id="c-results" class="hidden">
@@ -241,12 +241,12 @@
 
       <div id="view-sentiment" class="view hidden">
         <h1>Brand sentiment</h1>
-        <p class="sub">Enter your brand and a few questions your customers ask. We get each AI answer, then classify whether your brand is mentioned and how it's portrayed — positive, neutral, or negative.</p>
+        <p class="sub">Enter your brand and a few questions your customers ask. We get each AI answer, then classify whether your brand is mentioned and how it's portrayed - positive, neutral, or negative.</p>
         <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
           <input id="se-brand" type="text" placeholder="your brand name, e.g. KitchenAid">
           <textarea id="se-queries" rows="4" placeholder="One question per line, e.g.&#10;what is the best coffee machine descaler&#10;how do I remove limescale from a coffee maker" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
           <div><button class="primary" id="se-go">Run sentiment check</button>
-          <span class="cur" style="margin-left:10px">Two AI calls per question (answer + classify) — a few questions take a couple of minutes.</span></div>
+          <span class="cur" style="margin-left:10px">Two AI calls per question (answer + classify) - a few questions take a couple of minutes.</span></div>
         </div>
         <div id="se-err" class="err hidden"></div>
         <div id="se-results" class="hidden">
@@ -265,12 +265,12 @@
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px">
           <button class="primary" id="hi-pulse">Run pulse now</button>
           <button class="ghost" id="hi-refresh">Refresh</button>
-          <span class="cur" id="hi-note">Pulse re-analyzes every tracked page — a page each, no AI credit (analysis is free).</span>
+          <span class="cur" id="hi-note">Pulse re-analyzes every tracked page - a page each, no AI credit (analysis is free).</span>
         </div>
         <div id="hi-err" class="err hidden"></div>
         <div class="card">
           <h2>Tracked pages</h2>
-          <div id="hi-list"><p class="cur">No pages tracked yet — analyze a page first, then it appears here.</p></div>
+          <div id="hi-list"><p class="cur">No pages tracked yet - analyze a page first, then it appears here.</p></div>
         </div>
         <div id="hi-detail" class="card hidden">
           <h2 id="hi-detail-title">Trend</h2>
@@ -286,7 +286,7 @@
           <input id="rw-url" type="url" placeholder="https://example.com/your-article">
           <button class="primary" id="rw-go">Rewrite &amp; prove lift</button>
         </div>
-        <p class="cur" style="margin-top:-10px">Uses Claude — takes ~30–60s and consumes API credit.</p>
+        <p class="cur" style="margin-top:-10px">Uses Claude - takes ~30-60s and consumes API credit.</p>
         <div id="rw-err" class="err hidden"></div>
         <div id="rw-results" class="hidden"><div id="rw-proof" class="proof"></div></div>
       </div>
@@ -311,7 +311,7 @@
 
       <div id="view-report" class="view hidden">
         <h1>Client report</h1>
-        <p class="sub">Paste a URL. We generate a shareable one-page report — score, grade, ranked fixes, and schema — that you can download and hand to a client.</p>
+        <p class="sub">Paste a URL. We generate a shareable one-page report - score, grade, ranked fixes, and schema - that you can download and hand to a client.</p>
         <div class="searchcard">
           <input id="rp-url" type="url" placeholder="https://example.com/your-article">
           <button class="primary" id="rp-go">Generate report</button>
@@ -320,7 +320,7 @@
         <div id="rp-results" class="hidden">
           <div class="card">
             <div class="hero">
-              <div class="grade" id="rp-grade">–</div>
+              <div class="grade" id="rp-grade">-</div>
               <div><div class="score"><span id="rp-score">0</span><small>/100</small></div>
                 <div class="status" id="rp-status"></div></div>
             </div>
@@ -334,7 +334,7 @@
 
       <div id="view-audit" class="view hidden">
         <h1>AEO Audit</h1>
-        <p class="sub">Paste a URL. We run a checklist of Answer Engine Optimization checks — structure, schema, content, and technical signals — and mark each pass, warn, or fail.</p>
+        <p class="sub">Paste a URL. We run a checklist of Answer Engine Optimization checks - structure, schema, content, and technical signals - and mark each pass, warn, or fail.</p>
         <div class="searchcard">
           <input id="au-url" type="url" placeholder="https://example.com/your-article">
           <button class="primary" id="au-go">Run audit</button>
@@ -413,7 +413,7 @@ function render(r){
       ${bar(f.current_score, f.max)}
       <p class="action">${escapeHtml(f.action)}</p>
       ${f.specifics && f.specifics.length ? '<ul class="spec">'+f.specifics.map(s=>`<li>${escapeHtml(s)}</li>`).join('')+'</ul>' : ''}
-    </div>`).join('') || '<p>No fixes needed — every factor is at full marks.</p>';
+    </div>`).join('') || '<p>No fixes needed - every factor is at full marks.</p>';
 
   $('strengths').innerHTML = (r.strengths||[]).map(s=>`<li>${escapeHtml(s.label)} ${s.score}/${s.max}</li>`).join('') || '<li>None yet</li>';
 
@@ -624,7 +624,7 @@ function renderCompetitors(d){
   $('c-rate').textContent = d.target_cited + ' / ' + d.queries;
   $('c-rate-note').textContent = d.target_cited>0
     ? `${d.target} was cited for ${d.target_cited} of ${d.queries} queries.`
-    : `${d.target} was not cited for any of the ${d.queries} queries — that gap is the opportunity.`;
+    : `${d.target} was not cited for any of the ${d.queries} queries - that gap is the opportunity.`;
   const rows = (d.competitors||[]).filter(c=>!c.is_target).slice(0,15);
   $('c-table').innerHTML = rows.map((c,i)=>`
     <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(c.domain)}</span>
@@ -648,14 +648,14 @@ async function loadTracked(){
   }catch(e){ tabErr('hi-err','Network error: '+e.message); }
 }
 function renderTracked(targets){
-  if(!targets.length){ $('hi-list').innerHTML='<p class="cur">No pages tracked yet — analyze a page first, then it appears here.</p>'; return; }
+  if(!targets.length){ $('hi-list').innerHTML='<p class="cur">No pages tracked yet - analyze a page first, then it appears here.</p>'; return; }
   $('hi-list').innerHTML = targets.map(t=>{
     const km = KIND_META[t.kind] || {label:t.kind, suffix:''};
     const delta = (t.latest_score!=null && t.first_score!=null) ? t.latest_score - t.first_score : 0;
     const arrow = delta>0 ? `<span class="gain">▲ +${delta}</span>` : (delta<0 ? `<span style="color:#dc2626">▼ ${delta}</span>` : '');
     return `<div class="item" style="cursor:pointer" data-target="${escapeHtml(t.target)}" data-kind="${escapeHtml(t.kind)}">
       <div class="item-h"><span>${escapeHtml(t.target)} <span class="tag">${escapeHtml(km.label)}</span></span>
-      <span><b>${t.latest_score==null?'–':t.latest_score}</b>${km.suffix} ${arrow}</span></div>
+      <span><b>${t.latest_score==null?'-':t.latest_score}</b>${km.suffix} ${arrow}</span></div>
       <div class="cur">${t.runs} run${t.runs===1?'':'s'} · last ${escapeHtml((t.latest||'').slice(0,10))}</div></div>`;
   }).join('');
   document.querySelectorAll('#hi-list .item').forEach(el=>el.addEventListener('click',()=>loadHistory(el.dataset.target, el.dataset.kind)));
@@ -683,7 +683,7 @@ function renderTrend(target, kind, runs){
   } else { $('hi-chart').innerHTML = '<p class="cur">No scores recorded.</p>'; }
   $('hi-runs').innerHTML = runs.slice().reverse().map(r=>`
     <div class="item"><div class="item-h"><span class="cur">${escapeHtml((r.created_at||'').replace('T',' ').slice(0,16))}</span>
-    <span><b>${r.score==null?'–':r.score}</b>${km.suffix} ${r.detail&&r.detail.grade?`<span class="tag">${escapeHtml(r.detail.grade)}</span>`:''}</span></div></div>`).join('');
+    <span><b>${r.score==null?'-':r.score}</b>${km.suffix} ${r.detail&&r.detail.grade?`<span class="tag">${escapeHtml(r.detail.grade)}</span>`:''}</span></div></div>`).join('');
   $('hi-detail').classList.remove('hidden');
   $('hi-detail').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -694,7 +694,7 @@ async function runPulse(){
     const res = await fetch('/api/pulse',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     const data = await res.json();
     if(!res.ok){ tabErr('hi-err', data.error||'Pulse failed.'); return; }
-    $('hi-note').textContent = `Pulse complete — re-checked ${data.pulsed} page${data.pulsed===1?'':'s'}.`;
+    $('hi-note').textContent = `Pulse complete - re-checked ${data.pulsed} page${data.pulsed===1?'':'s'}.`;
     loadTracked();
   }catch(e){ tabErr('hi-err','Network error: '+e.message); }
   finally{ setBusy($('hi-pulse'), false, 'Run pulse now'); }
@@ -706,65 +706,65 @@ $('hi-refresh').addEventListener('click', loadTracked);
 const DOCS = [
   {id:'overview', icon:'📖', title:'Overview', html:`
     <p>CitePilot reads a web page, scores how quotable it is to AI answer engines, fixes the weak parts, and verifies the improvement.</p>
-    <p>The engine is a pipeline — <code>Ingest → Analyze → Schema / Rewrite / Report / AEO Audit</code> — with a separate citation harness that checks whether AI answers actually cite your domain.</p>
+    <p>The engine is a pipeline - <code>Ingest → Analyze → Schema / Rewrite / Report / AEO Audit</code> - with a separate citation harness that checks whether AI answers actually cite your domain.</p>
     <p>Rule-based tabs (Analyze, AEO Audit, Schema, Report, History) are free and call no model. Model-backed tabs (Rewrite, Competitors, Sentiment) use Claude and consume API credit.</p>`},
   {id:'analyze', icon:'📊', title:'Analyze', html:`
-    <p>Paste a URL. CitePilot reads the page and scores it 0–100 across six citation-readiness signals, then lists the fixes ranked by how many points each is worth.</p>
+    <p>Paste a URL. CitePilot reads the page and scores it 0-100 across six citation-readiness signals, then lists the fixes ranked by how many points each is worth.</p>
     <ul>
-      <li><b>Header quality</b> — specific, question-style headings</li>
-      <li><b>Answer-first structure</b> — the point up front, not buried</li>
-      <li><b>Lists &amp; tables</b> — structure an AI can extract</li>
-      <li><b>Factual specificity</b> — numbers, dates, named entities</li>
-      <li><b>Author &amp; publisher signals</b> — byline and meta description</li>
-      <li><b>Freshness</b> — a real published or updated date</li>
+      <li><b>Header quality</b> - specific, question-style headings</li>
+      <li><b>Answer-first structure</b> - the point up front, not buried</li>
+      <li><b>Lists &amp; tables</b> - structure an AI can extract</li>
+      <li><b>Factual specificity</b> - numbers, dates, named entities</li>
+      <li><b>Author &amp; publisher signals</b> - byline and meta description</li>
+      <li><b>Freshness</b> - a real published or updated date</li>
     </ul>
-    <p>Free — no API key needed.</p>`},
+    <p>Free - no API key needed.</p>`},
   {id:'audit', icon:'✅', title:'AEO Audit', html:`
-    <p>Enter any URL to run an Answer Engine Optimization audit — the same signals as Analyze, shown as a pass / warn / fail checklist.</p>
+    <p>Enter any URL to run an Answer Engine Optimization audit - the same signals as Analyze, shown as a pass / warn / fail checklist.</p>
     <p>Checks are grouped into categories:</p>
     <ul>
-      <li><b>Structure &amp; Schema</b> — Schema.org markup, FAQ schema, Open Graph tags, canonical tag</li>
-      <li><b>Content Quality</b> — meta description plus the six content signals</li>
-      <li><b>Technical</b> — HTTPS and HSTS</li>
-      <li><b>Server-Side Rendering</b> — whether the page renders without JavaScript</li>
+      <li><b>Structure &amp; Schema</b> - Schema.org markup, FAQ schema, Open Graph tags, canonical tag</li>
+      <li><b>Content Quality</b> - meta description plus the six content signals</li>
+      <li><b>Technical</b> - HTTPS and HSTS</li>
+      <li><b>Server-Side Rendering</b> - whether the page renders without JavaScript</li>
     </ul>
-    <p>Every row shows a status and a one-line detail, and the whole audit exports to <code>audit.csv</code>. Free — the technical checks read straight from the page fetch, no extra calls.</p>`},
+    <p>Every row shows a status and a one-line detail, and the whole audit exports to <code>audit.csv</code>. Free - the technical checks read straight from the page fetch, no extra calls.</p>`},
   {id:'rewrite', icon:'✍️', title:'Rewrite', html:`
-    <p>Paste a URL. Claude rewrites the weak parts — generic headings, buried answers, thin structure — then CitePilot re-scores the rewrite to prove the lift.</p>
-    <p>Uses Claude and consumes API credit (~30–60s per page). Needs <code>ANTHROPIC_API_KEY</code>.</p>`},
+    <p>Paste a URL. Claude rewrites the weak parts - generic headings, buried answers, thin structure - then CitePilot re-scores the rewrite to prove the lift.</p>
+    <p>Uses Claude and consumes API credit (~30-60s per page). Needs <code>ANTHROPIC_API_KEY</code>.</p>`},
   {id:'schema', icon:'🔗', title:'Schema', html:`
     <p>Paste a URL. CitePilot detects the best schema type (Article, FAQ, or HowTo) and generates ready-to-paste JSON-LD that helps search and AI understand the page.</p>
     <p>If the page already has schema, the generated markup is merged with it. Free.</p>`},
   {id:'report', icon:'📄', title:'Report', html:`
-    <p>Paste a URL to generate a shareable one-page report — score, grade, ranked fixes, strengths, and paste-ready schema — that you can download as HTML and hand to a client.</p>
+    <p>Paste a URL to generate a shareable one-page report - score, grade, ranked fixes, strengths, and paste-ready schema - that you can download as HTML and hand to a client.</p>
     <p>Free.</p>`},
   {id:'competitors', icon:'🏆', title:'Competitors', html:`
     <p>Enter your domain and a few questions your customers ask. CitePilot asks Claude each question with live web search and shows which domains win the citations, and how often yours does.</p>
     <p>Slow (live search) and consumes API credit. Results are saved to History.</p>`},
   {id:'sentiment', icon:'💬', title:'Sentiment', html:`
-    <p>Enter your brand and a few questions. CitePilot gets each AI answer, then classifies whether your brand is mentioned and how it's portrayed — positive, neutral, or negative — with a quoted piece of evidence.</p>
+    <p>Enter your brand and a few questions. CitePilot gets each AI answer, then classifies whether your brand is mentioned and how it's portrayed - positive, neutral, or negative - with a quoted piece of evidence.</p>
     <p>Two Claude calls per question. Results are saved to History.</p>`},
   {id:'history', icon:'🕘', title:'History & trends', html:`
     <p>Every analyze, sentiment, and competitor run is saved with a timestamp, so you can watch a page or brand trend over time.</p>
-    <p><b>Pulse</b> re-checks every tracked page now and records a fresh score — free, since analysis calls no model.</p>
+    <p><b>Pulse</b> re-checks every tracked page now and records a fresh score - free, since analysis calls no model.</p>
     <p>Each tracked item shows its kind and a matching score: <code>/100</code> for Analyze, <code>% positive</code> for Sentiment, <code>% cited</code> for Competitors.</p>`},
   {id:'score', icon:'🎯', title:'What the score means', html:`
-    <p>The score measures <b>on-page content signals</b> — not real-world ranking or domain authority. A page can score low and still rank well with strong backlinks, and vice-versa.</p>
+    <p>The score measures <b>on-page content signals</b> - not real-world ranking or domain authority. A page can score low and still rank well with strong backlinks, and vice-versa.</p>
     <p>Use it to make content more quotable, not to predict rankings.</p>
     <ul>
-      <li>Google AI Overviews has no public API, so it can't be citation-tested — only Claude today.</li>
+      <li>Google AI Overviews has no public API, so it can't be citation-tested - only Claude today.</li>
       <li>Recency needs a real date; CitePilot never invents one.</li>
     </ul>`},
   {id:'pipeline', icon:'⚙️', title:'Pipeline & phases', html:`
     <p>CitePilot is seven phases, each a standalone CLI that reads and writes JSON:</p>
     <ul>
-      <li><b>1. Ingest</b> (<code>ingest.py</code>) — URL/HTML/Markdown → normalized JSON</li>
-      <li><b>2. Analyze</b> (<code>analyzer.py</code>) — six-factor scoring</li>
-      <li><b>3. Schema</b> (<code>generator.py</code>) — JSON-LD</li>
-      <li><b>4. Rewrite</b> (<code>rewriter.py</code>) — Claude rewrite</li>
-      <li><b>5. Report</b> (<code>rubric.py</code>) — client report</li>
-      <li><b>6. Harness</b> (<code>harness.py</code>) — live citation test</li>
-      <li><b>7. Dashboard</b> (<code>app.py</code>) — this UI</li>
+      <li><b>1. Ingest</b> (<code>ingest.py</code>) - URL/HTML/Markdown → normalized JSON</li>
+      <li><b>2. Analyze</b> (<code>analyzer.py</code>) - six-factor scoring</li>
+      <li><b>3. Schema</b> (<code>generator.py</code>) - JSON-LD</li>
+      <li><b>4. Rewrite</b> (<code>rewriter.py</code>) - Claude rewrite</li>
+      <li><b>5. Report</b> (<code>rubric.py</code>) - client report</li>
+      <li><b>6. Harness</b> (<code>harness.py</code>) - live citation test</li>
+      <li><b>7. Dashboard</b> (<code>app.py</code>) - this UI</li>
     </ul>
     <p>The dashboard orchestrates them; you can also run any phase alone from the command line.</p>`},
   {id:'keys', icon:'🔑', title:'API keys & cost', html:`
