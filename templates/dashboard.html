@@ -74,6 +74,16 @@
   .mixlegend .dot{width:10px;height:10px;border-radius:50%;align-self:center}
   .mixlegend b{font-size:20px} .mixlegend small{color:var(--muted)}
   .pill{font-size:12px;font-weight:700;border-radius:20px;padding:2px 9px;color:#fff}
+  /* AEO audit */
+  .auditsum{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .auditsum .s{flex:1;min-width:120px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .auditsum .s b{font-size:28px;font-weight:800;line-height:1;display:block}
+  .auditsum .s small{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.04em}
+  .catname{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4a544e;margin:22px 0 8px}
+  .chk{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;margin-bottom:8px}
+  .chk .mk{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;margin-top:1px}
+  .chk .mk.pass{background:#16a34a} .chk .mk.warn{background:#d97706} .chk .mk.fail{background:#dc2626}
+  .chk .nm{font-weight:600} .chk .dt{color:var(--muted);font-size:13px;margin-top:1px;word-break:break-word}
 </style>
 </head>
 <body>
@@ -89,6 +99,7 @@
       <a data-view="rewrite"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Rewrite <span class="tag">Phase 4</span></a>
       <a data-view="schema"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Schema</a>
       <a data-view="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg> Report</a>
+      <a data-view="audit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> AEO Audit <span class="tag">New</span></a>
       <a data-view="docs"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg> Documentation</a>
     </nav>
   </aside>
@@ -263,6 +274,23 @@
         </div>
       </div>
 
+      <div id="view-audit" class="view hidden">
+        <h1>AEO Audit</h1>
+        <p class="sub">Paste a URL. We run a checklist of Answer Engine Optimization checks — structure, schema, content, and technical signals — and mark each pass, warn, or fail.</p>
+        <div class="searchcard">
+          <input id="au-url" type="url" placeholder="https://example.com/your-article">
+          <button class="primary" id="au-go">Run audit</button>
+        </div>
+        <div id="au-err" class="err hidden"></div>
+        <div id="au-results" class="hidden">
+          <div class="auditsum" id="au-summary"></div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+            <button class="ghost" id="au-export">⬇ Export audit.csv</button>
+          </div>
+          <div id="au-body"></div>
+        </div>
+      </div>
+
       <div id="view-docs" class="view hidden">
         <h1>How it works</h1>
         <p class="sub">The tool runs a pipeline that reads a page, scores how quotable it is to AI answer engines, fixes it, and proves the improvement.</p>
@@ -272,6 +300,7 @@
           <div class="item"><div class="item-h"><span>Rewrite</span></div><p class="action">Claude rewrites the weak parts (generic headings, buried answers) and we re-score to prove the lift. Consumes API credit.</p></div>
           <div class="item"><div class="item-h"><span>Schema</span></div><p class="action">Generates ready-to-paste JSON-LD structured-data markup so Google understands the page.</p></div>
           <div class="item"><div class="item-h"><span>Report</span></div><p class="action">A shareable one-page client report — score, grade, ranked fixes, schema — you can download as HTML.</p></div>
+          <div class="item"><div class="item-h"><span>AEO Audit</span></div><p class="action">The same signals as a pass/warn/fail checklist — structure, schema, Open Graph, canonical, HTTPS/HSTS, JS-free rendering — grouped by category and exportable as CSV. Free, no API credit.</p></div>
           <div class="item"><div class="item-h"><span>Competitors</span></div><p class="action">Asks Claude your customers' questions with live web search and shows which rival domains win the citations. Slow (live search) and consumes credit.</p></div>
           <div class="item"><div class="item-h"><span>Sentiment</span></div><p class="action">Gets each AI answer to your customers' questions, then classifies how your brand is portrayed — positive, neutral, or negative.</p></div>
         </div>
@@ -438,6 +467,51 @@ function downloadReport(){
 }
 function tabErr(id, msg){ const e=$(id); e.textContent=msg; e.classList.remove('hidden'); }
 
+// --- AEO audit tab ---
+const AUDIT_MARK = {pass:'✓', warn:'!', fail:'✕'};
+let lastAudit = null;
+async function runAudit(){
+  const url = $('au-url').value.trim();
+  if(!url){ tabErr('au-err','Enter a page URL.'); return; }
+  $('au-err').classList.add('hidden'); $('au-results').classList.add('hidden');
+  setBusy($('au-go'), true, 'Auditing…');
+  try{
+    const res = await fetch('/api/audit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('au-err', data.error||'Audit failed.'); return; }
+    renderAudit(data);
+  }catch(e){ tabErr('au-err','Network error: '+e.message); }
+  finally{ setBusy($('au-go'), false, 'Run audit'); }
+}
+function renderAudit(d){
+  lastAudit = d;
+  const s = d.summary || {pass:0,warn:0,fail:0,total:0};
+  $('au-summary').innerHTML = `
+    <div class="s"><b style="color:#16a34a">${s.pass}</b><small>Passing</small></div>
+    <div class="s"><b style="color:#d97706">${s.warn}</b><small>Warnings</small></div>
+    <div class="s"><b style="color:#dc2626">${s.fail}</b><small>Failing</small></div>
+    <div class="s"><b>${s.total}</b><small>Checks</small></div>`;
+  $('au-body').innerHTML = (d.categories||[]).map(cat=>`
+    <div class="catname">${escapeHtml(cat.name)}</div>
+    ${cat.checks.map(c=>`
+      <div class="chk">
+        <div class="mk ${c.status}">${AUDIT_MARK[c.status]||'?'}</div>
+        <div><div class="nm">${escapeHtml(c.check)}</div><div class="dt">${escapeHtml(c.detail)}</div></div>
+      </div>`).join('')}`).join('');
+  $('au-results').classList.remove('hidden');
+}
+function exportAudit(){
+  if(!lastAudit) return;
+  const rows = [['Category','Check','Status','Detail']];
+  (lastAudit.categories||[]).forEach(cat=>cat.checks.forEach(c=>
+    rows.push([cat.name, c.check, c.status, c.detail])));
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'audit.csv'; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 // --- sentiment tab ---
 const SENTIMENT_META = {
   positive:{label:'Positive', color:'#16a34a'},
@@ -581,6 +655,9 @@ $('sc-copy').addEventListener('click', ()=>navigator.clipboard.writeText($('sc-c
 $('rp-go').addEventListener('click', runReport);
 $('rp-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runReport(); });
 $('rp-download').addEventListener('click', downloadReport);
+$('au-go').addEventListener('click', runAudit);
+$('au-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runAudit(); });
+$('au-export').addEventListener('click', exportAudit);
 </script>
 </body>
 </html>

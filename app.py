@@ -20,6 +20,7 @@ from typing import Any
 from flask import Flask, jsonify, render_template, request
 
 import analyzer
+import audit
 import db
 import generator
 import harness
@@ -204,6 +205,24 @@ def api_schema():
         schema = _schema_for(payload)
         schema["title"] = payload.get("title")
         return jsonify(schema)
+    except ingest.IngestError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+
+
+@app.post("/api/audit")
+def api_audit():
+    url = (request.json or {}).get("url", "").strip()
+    if not url:
+        return jsonify({"error": "Enter a page URL."}), 400
+    try:
+        response = ingest.fetch_url_response(url)
+        html = response.text
+        payload = ingest.extract_html_payload(html, url)
+        analysis = analyzer.build_analysis(payload)
+        result = audit.build_audit(payload, analysis, html, response.url, dict(response.headers))
+        return jsonify(result)
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:

@@ -388,7 +388,12 @@ def extract_markdown_payload(text: str, source: str) -> dict[str, object]:
     }
 
 
-def fetch_url(url: str) -> str:
+def fetch_url_response(url: str) -> requests.Response:
+    """Fetch a URL and return the full response.
+
+    Callers that only need the HTML use fetch_url(); the audit needs the
+    response object too (final URL after redirects, and headers like HSTS).
+    """
     try:
         response = requests.get(
             url,
@@ -401,7 +406,11 @@ def fetch_url(url: str) -> str:
 
     if not response.text.strip():
         raise IngestError(f"The URL returned empty content: {url}")
-    return response.text
+    return response
+
+
+def fetch_url(url: str) -> str:
+    return fetch_url_response(url).text
 
 
 def load_file(path_str: str) -> str:
