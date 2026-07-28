@@ -51,9 +51,21 @@ def _ratio_status(score: int, max_score: int) -> str:
     return FAIL
 
 
-def _first_issue(section: dict[str, Any], fallback: str) -> str:
-    issues = [i for i in section.get("issues", []) if isinstance(i, str)]
-    return issues[0] if issues else fallback
+# The rubric's "issues" list mixes praise ("Author cues were detected") with
+# real problems. On a warn/fail row we want the problem, so prefer an issue that
+# reads like a gap; fall back to the factor's fix hint if every issue is praise.
+NEGATIVE_MARKERS = (
+    "no ", "not ", "missing", "vague", "add ", "lacks", "too ", "jump",
+    "duplicate", "only ", "reduce", "verify", "repeats", "generic",
+    "delayed", "buildup", "hedging", "narrative", "short and", "closely", "decay",
+)
+
+
+def _negative_issue(section: dict[str, Any]) -> Optional[str]:
+    for issue in section.get("issues", []):
+        if isinstance(issue, str) and any(m in issue.lower() for m in NEGATIVE_MARKERS):
+            return issue
+    return None
 
 
 # --- Structure & Schema -----------------------------------------------------
@@ -152,26 +164,36 @@ def _check_meta_description(payload: dict[str, Any]) -> dict[str, Any]:
                 f"{length} characters ({hint}); aim for 50–170.")
 
 
+# factor, label, pass detail, fix hint (used when warn/fail and no problem issue).
 CONTENT_FACTORS = [
-    ("answer_first_structure", "BLUF-style content", "Opens with a direct, quotable answer."),
-    ("header_quality", "Heading hierarchy", "Headings are specific and well-nested."),
-    ("list_table_presence", "Lists & tables", "Uses lists/tables AI can extract."),
-    ("factual_specificity", "Factual specificity", "Dense with concrete, citable facts."),
-    ("byline_authority", "Author & publisher signals", "Author/publisher signals present."),
-    ("recency_signals", "Freshness / dates", "Has a published or updated date."),
+    ("answer_first_structure", "BLUF-style content",
+     "Opens with a direct, quotable answer.", "Lead with a direct answer in the first sentence."),
+    ("header_quality", "Heading hierarchy",
+     "Headings are specific and well-nested.", "Use specific, question-style headings with a clear H1."),
+    ("list_table_presence", "Lists & tables",
+     "Uses lists/tables AI can extract.", "Add numbered lists or tables so points are extractable."),
+    ("factual_specificity", "Factual specificity",
+     "Dense with concrete, citable facts.", "Add concrete numbers, dates, and named entities."),
+    ("byline_authority", "Author & publisher signals",
+     "Author/publisher signals present.", "Add a visible author byline and a publisher/meta description."),
+    ("recency_signals", "Freshness / dates",
+     "Has a published or updated date.", "Add the page's real published or last-updated date."),
 ]
 
 
 def _content_rows(analysis: dict[str, Any]) -> list[dict[str, Any]]:
     breakdown = analysis.get("breakdown", {})
     rows: list[dict[str, Any]] = []
-    for factor, label, ok_detail in CONTENT_FACTORS:
+    for factor, label, pass_detail, fix_detail in CONTENT_FACTORS:
         section = breakdown.get(factor)
         if not isinstance(section, dict):
             continue
         score, max_score = int(section["score"]), int(section["max"])
         status = _ratio_status(score, max_score)
-        detail = ok_detail if status == PASS else _first_issue(section, ok_detail)
+        if status == PASS:
+            detail = pass_detail
+        else:
+            detail = _negative_issue(section) or fix_detail
         detail = f"{detail} ({score}/{max_score} pts)"
         rows.append(_row("Content Quality", label, status, detail))
     return rows
