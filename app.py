@@ -27,26 +27,12 @@ import harness
 import ingest
 import rewriter
 import rubric
+from common import load_dotenv
 
 app = Flask(__name__)
 db.init_db()
 
 DEFAULT_MODEL = "claude-opus-4-8"
-
-
-def load_dotenv(path: str = ".env") -> None:
-    if not os.path.isfile(path):
-        return
-    with open(path, encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            key = key.strip()
-            value = value.strip().strip("'").strip('"')
-            if key and key not in os.environ:
-                os.environ[key] = value
 
 
 def _schema_for(payload: dict[str, Any]) -> dict[str, Any]:
@@ -160,12 +146,16 @@ def api_competitors():
             {"domain": d, "cited_in": c, "is_target": d == target_norm or d.endswith("." + target_norm)}
             for d, c in counts.most_common()
         ]
-        return jsonify({
+        result = {
             "target": target_norm,
             "queries": len(queries),
             "target_cited": target_cited,
             "competitors": competitors,
-        })
+        }
+        # Headline number for the trend line: citation rate as a percentage.
+        rate = round(100 * target_cited / len(queries)) if queries else 0
+        db.save_run("competitors", target_norm, rate, result)
+        return jsonify(result)
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
@@ -188,7 +178,11 @@ def api_sentiment():
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run sentiment checks."}), 400
     try:
-        return jsonify(harness.run_sentiment(brand, queries, DEFAULT_MODEL))
+        result = harness.run_sentiment(brand, queries, DEFAULT_MODEL)
+        # Headline number for the trend line: share of answers that were positive.
+        positive_pct = result.get("mix", {}).get("positive", {}).get("pct", 0)
+        db.save_run("sentiment", brand, positive_pct, result)
+        return jsonify(result)
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
@@ -254,16 +248,17 @@ def api_report():
 
 @app.get("/api/tracked")
 def api_tracked():
-    return jsonify({"targets": db.tracked_targets("analyze")})
+    return jsonify({"targets": db.tracked_targets()})
 
 
 @app.post("/api/history")
 def api_history():
     data = request.json or {}
     target = (data.get("target") or "").strip()
+    kind = (data.get("kind") or "analyze").strip()
     if not target:
         return jsonify({"error": "Enter a page URL."}), 400
-    return jsonify({"target": target, "runs": db.history("analyze", target)})
+    return jsonify({"target": target, "kind": kind, "runs": db.history(kind, target)})
 
 
 @app.post("/api/pulse")

@@ -583,6 +583,11 @@ function renderCompetitors(d){
 function cErr(m){ const e=$('c-err'); e.textContent=m; e.classList.remove('hidden'); }
 
 // --- history tab ---
+const KIND_META = {
+  analyze:{label:'Analyze', suffix:'/100'},
+  sentiment:{label:'Sentiment', suffix:'% positive'},
+  competitors:{label:'Competitors', suffix:'% cited'},
+};
 async function loadTracked(){
   try{
     const res = await fetch('/api/tracked');
@@ -593,24 +598,27 @@ async function loadTracked(){
 function renderTracked(targets){
   if(!targets.length){ $('hi-list').innerHTML='<p class="cur">No pages tracked yet — analyze a page first, then it appears here.</p>'; return; }
   $('hi-list').innerHTML = targets.map(t=>{
+    const km = KIND_META[t.kind] || {label:t.kind, suffix:''};
     const delta = (t.latest_score!=null && t.first_score!=null) ? t.latest_score - t.first_score : 0;
     const arrow = delta>0 ? `<span class="gain">▲ +${delta}</span>` : (delta<0 ? `<span style="color:#dc2626">▼ ${delta}</span>` : '');
-    return `<div class="item" style="cursor:pointer" data-target="${escapeHtml(t.target)}">
-      <div class="item-h"><span>${escapeHtml(t.target)}</span>
-      <span><b>${t.latest_score==null?'–':t.latest_score}</b>/100 ${arrow}</span></div>
+    return `<div class="item" style="cursor:pointer" data-target="${escapeHtml(t.target)}" data-kind="${escapeHtml(t.kind)}">
+      <div class="item-h"><span>${escapeHtml(t.target)} <span class="tag">${escapeHtml(km.label)}</span></span>
+      <span><b>${t.latest_score==null?'–':t.latest_score}</b>${km.suffix} ${arrow}</span></div>
       <div class="cur">${t.runs} run${t.runs===1?'':'s'} · last ${escapeHtml((t.latest||'').slice(0,10))}</div></div>`;
   }).join('');
-  document.querySelectorAll('#hi-list .item').forEach(el=>el.addEventListener('click',()=>loadHistory(el.dataset.target)));
+  document.querySelectorAll('#hi-list .item').forEach(el=>el.addEventListener('click',()=>loadHistory(el.dataset.target, el.dataset.kind)));
 }
-async function loadHistory(target){
+async function loadHistory(target, kind){
+  kind = kind || 'analyze';
   try{
-    const res = await fetch('/api/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
+    const res = await fetch('/api/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target, kind})});
     const data = await res.json();
-    renderTrend(target, data.runs||[]);
+    renderTrend(target, kind, data.runs||[]);
   }catch(e){ tabErr('hi-err','Network error: '+e.message); }
 }
-function renderTrend(target, runs){
-  $('hi-detail-title').textContent = target;
+function renderTrend(target, kind, runs){
+  const km = KIND_META[kind] || {label:kind, suffix:''};
+  $('hi-detail-title').textContent = `${target} · ${km.label}`;
   const scores = runs.map(r=>r.score).filter(s=>s!=null);
   if(scores.length){
     const W=640,H=140,pad=8, n=scores.length;
@@ -623,7 +631,7 @@ function renderTrend(target, runs){
   } else { $('hi-chart').innerHTML = '<p class="cur">No scores recorded.</p>'; }
   $('hi-runs').innerHTML = runs.slice().reverse().map(r=>`
     <div class="item"><div class="item-h"><span class="cur">${escapeHtml((r.created_at||'').replace('T',' ').slice(0,16))}</span>
-    <span><b>${r.score==null?'–':r.score}</b>/100 ${r.detail&&r.detail.grade?`<span class="tag">${escapeHtml(r.detail.grade)}</span>`:''}</span></div></div>`).join('');
+    <span><b>${r.score==null?'–':r.score}</b>${km.suffix} ${r.detail&&r.detail.grade?`<span class="tag">${escapeHtml(r.detail.grade)}</span>`:''}</span></div></div>`).join('');
   $('hi-detail').classList.remove('hidden');
   $('hi-detail').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
