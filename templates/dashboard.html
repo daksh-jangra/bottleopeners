@@ -85,6 +85,7 @@
       <a class="active" data-view="analyze"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg> Analyze</a>
       <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
       <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
+      <a data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> History <span class="tag">New</span></a>
       <a data-view="rewrite"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Rewrite <span class="tag">Phase 4</span></a>
       <a data-view="schema"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Schema</a>
       <a data-view="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg> Report</a>
@@ -186,6 +187,26 @@
             <div class="mixlegend" id="se-legend"></div>
           </div>
           <div class="card"><h2>Per question</h2><div id="se-table"></div></div>
+        </div>
+      </div>
+
+      <div id="view-history" class="view hidden">
+        <h1>History &amp; trends</h1>
+        <p class="sub">Every page you analyze is saved with a timestamp. Re-analyze the same page over days to build a trend. "Pulse" re-checks every tracked page now and records a fresh score.</p>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px">
+          <button class="primary" id="hi-pulse">Run pulse now</button>
+          <button class="ghost" id="hi-refresh">Refresh</button>
+          <span class="cur" id="hi-note">Pulse re-analyzes every tracked page — a page each, no AI credit (analysis is free).</span>
+        </div>
+        <div id="hi-err" class="err hidden"></div>
+        <div class="card">
+          <h2>Tracked pages</h2>
+          <div id="hi-list"><p class="cur">No pages tracked yet — analyze a page first, then it appears here.</p></div>
+        </div>
+        <div id="hi-detail" class="card hidden">
+          <h2 id="hi-detail-title">Trend</h2>
+          <div id="hi-chart"></div>
+          <div id="hi-runs"></div>
         </div>
       </div>
 
@@ -348,7 +369,10 @@ function showView(name){
   document.getElementById('view-'+name).classList.remove('hidden');
   document.querySelectorAll('nav a[data-view]').forEach(a=>a.classList.toggle('active', a.dataset.view===name));
 }
-document.querySelectorAll('nav a[data-view]').forEach(a=>a.addEventListener('click',()=>showView(a.dataset.view)));
+document.querySelectorAll('nav a[data-view]').forEach(a=>a.addEventListener('click',()=>{
+  showView(a.dataset.view);
+  if(a.dataset.view==='history') loadTracked();
+}));
 
 // --- rewrite tab ---
 async function runRewriteTab(){
@@ -483,6 +507,66 @@ function renderCompetitors(d){
   $('c-results').classList.remove('hidden');
 }
 function cErr(m){ const e=$('c-err'); e.textContent=m; e.classList.remove('hidden'); }
+
+// --- history tab ---
+async function loadTracked(){
+  try{
+    const res = await fetch('/api/tracked');
+    const data = await res.json();
+    renderTracked(data.targets||[]);
+  }catch(e){ tabErr('hi-err','Network error: '+e.message); }
+}
+function renderTracked(targets){
+  if(!targets.length){ $('hi-list').innerHTML='<p class="cur">No pages tracked yet — analyze a page first, then it appears here.</p>'; return; }
+  $('hi-list').innerHTML = targets.map(t=>{
+    const delta = (t.latest_score!=null && t.first_score!=null) ? t.latest_score - t.first_score : 0;
+    const arrow = delta>0 ? `<span class="gain">▲ +${delta}</span>` : (delta<0 ? `<span style="color:#dc2626">▼ ${delta}</span>` : '');
+    return `<div class="item" style="cursor:pointer" data-target="${escapeHtml(t.target)}">
+      <div class="item-h"><span>${escapeHtml(t.target)}</span>
+      <span><b>${t.latest_score==null?'–':t.latest_score}</b>/100 ${arrow}</span></div>
+      <div class="cur">${t.runs} run${t.runs===1?'':'s'} · last ${escapeHtml((t.latest||'').slice(0,10))}</div></div>`;
+  }).join('');
+  document.querySelectorAll('#hi-list .item').forEach(el=>el.addEventListener('click',()=>loadHistory(el.dataset.target)));
+}
+async function loadHistory(target){
+  try{
+    const res = await fetch('/api/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
+    const data = await res.json();
+    renderTrend(target, data.runs||[]);
+  }catch(e){ tabErr('hi-err','Network error: '+e.message); }
+}
+function renderTrend(target, runs){
+  $('hi-detail-title').textContent = target;
+  const scores = runs.map(r=>r.score).filter(s=>s!=null);
+  if(scores.length){
+    const W=640,H=140,pad=8, n=scores.length;
+    const x=i=> n<2?W/2 : pad + i*(W-2*pad)/(n-1);
+    const y=s=> H-pad - (s/100)*(H-2*pad);
+    const pts = scores.map((s,i)=>`${x(i).toFixed(1)},${y(s).toFixed(1)}`).join(' ');
+    const dots = scores.map((s,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(s).toFixed(1)}" r="3" fill="#12563a"/>`).join('');
+    $('hi-chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:150px">
+      <polyline points="${pts}" fill="none" stroke="#12563a" stroke-width="2.5"/>${dots}</svg>`;
+  } else { $('hi-chart').innerHTML = '<p class="cur">No scores recorded.</p>'; }
+  $('hi-runs').innerHTML = runs.slice().reverse().map(r=>`
+    <div class="item"><div class="item-h"><span class="cur">${escapeHtml((r.created_at||'').replace('T',' ').slice(0,16))}</span>
+    <span><b>${r.score==null?'–':r.score}</b>/100 ${r.detail&&r.detail.grade?`<span class="tag">${escapeHtml(r.detail.grade)}</span>`:''}</span></div></div>`).join('');
+  $('hi-detail').classList.remove('hidden');
+  $('hi-detail').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+async function runPulse(){
+  setBusy($('hi-pulse'), true, 'Pulsing…');
+  $('hi-err').classList.add('hidden');
+  try{
+    const res = await fetch('/api/pulse',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const data = await res.json();
+    if(!res.ok){ tabErr('hi-err', data.error||'Pulse failed.'); return; }
+    $('hi-note').textContent = `Pulse complete — re-checked ${data.pulsed} page${data.pulsed===1?'':'s'}.`;
+    loadTracked();
+  }catch(e){ tabErr('hi-err','Network error: '+e.message); }
+  finally{ setBusy($('hi-pulse'), false, 'Run pulse now'); }
+}
+$('hi-pulse').addEventListener('click', runPulse);
+$('hi-refresh').addEventListener('click', loadTracked);
 
 $('go').addEventListener('click', analyze);
 $('url').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });

@@ -6,3 +6,6 @@ __pycache__/
 
 # Generated pipeline output (test runs, client artifacts)
 output/
+
+# Local runs database
+citepilot.db

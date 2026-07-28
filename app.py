@@ -20,6 +20,7 @@ from typing import Any
 from flask import Flask, jsonify, render_template, request
 
 import analyzer
+import db
 import generator
 import harness
 import ingest
@@ -27,6 +28,7 @@ import rewriter
 import rubric
 
 app = Flask(__name__)
+db.init_db()
 
 DEFAULT_MODEL = "claude-opus-4-8"
 
@@ -84,6 +86,10 @@ def api_analyze():
             "lists": payload.get("list_count"),
             "tables": payload.get("table_count"),
         }
+        db.save_run("analyze", url, report["score"], {
+            "grade": report["grade"],
+            "title": payload.get("title"),
+        })
         return jsonify(report)
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
@@ -225,6 +231,37 @@ def api_report():
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return jsonify({"error": f"Unexpected error: {exc}"}), 500
+
+
+@app.get("/api/tracked")
+def api_tracked():
+    return jsonify({"targets": db.tracked_targets("analyze")})
+
+
+@app.post("/api/history")
+def api_history():
+    data = request.json or {}
+    target = (data.get("target") or "").strip()
+    if not target:
+        return jsonify({"error": "Enter a page URL."}), 400
+    return jsonify({"target": target, "runs": db.history("analyze", target)})
+
+
+@app.post("/api/pulse")
+def api_pulse():
+    """Re-check every tracked page now and snapshot a fresh score (a manual 'pulse')."""
+    targets = [t["target"] for t in db.tracked_targets("analyze")]
+    results = []
+    for url in targets:
+        try:
+            payload = _fetch_payload(url)
+            analysis = analyzer.build_analysis(payload)
+            report = rubric.build_report(analysis, _schema_for(payload), None)
+            db.save_run("analyze", url, report["score"], {"grade": report["grade"], "title": payload.get("title")})
+            results.append({"target": url, "score": report["score"], "ok": True})
+        except Exception as exc:
+            results.append({"target": url, "ok": False, "error": str(exc)})
+    return jsonify({"pulsed": len(results), "results": results})
 
 
 if __name__ == "__main__":
