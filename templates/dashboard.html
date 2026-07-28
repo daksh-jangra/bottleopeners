@@ -4,10 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Citation Readiness</title>
+<script>try{var t=localStorage.getItem('cp-theme');if(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <style>
   :root{
     --green:#12563a; --green-2:#1a7a52; --accent:#16a34a;
     --bg:#f4f5f3; --panel:#ffffff; --line:#e6e8e5; --ink:#1c2420; --muted:#6b7670;
+  }
+  :root[data-theme="dark"]{
+    --green:#2f9e6e; --green-2:#3fb984; --accent:#22c55e;
+    --bg:#0f1512; --panel:#161d1a; --line:#26302b; --ink:#e6ece9; --muted:#9aa8a1;
   }
   *{box-sizing:border-box}
   body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
@@ -84,6 +89,54 @@
   .chk .mk{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;margin-top:1px}
   .chk .mk.pass{background:#16a34a} .chk .mk.warn{background:#d97706} .chk .mk.fail{background:#dc2626}
   .chk .nm{font-weight:600} .chk .dt{color:var(--muted);font-size:13px;margin-top:1px;word-break:break-word}
+  /* documentation */
+  .docs{display:flex;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}
+  .docs-side{width:236px;border-right:1px solid var(--line);padding:14px 12px;flex:none}
+  .docs-search{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:inherit;outline:none;margin-bottom:12px}
+  .docs-search:focus{border-color:var(--green-2)}
+  .docs-nav a{display:flex;gap:9px;align-items:center;padding:8px 10px;border-radius:8px;color:var(--ink);font-weight:500;font-size:14px;cursor:pointer;margin:1px 0}
+  .docs-nav a:hover{background:#f2f5f2}
+  .docs-nav a.active{background:#eaf3ee;color:var(--green);font-weight:600}
+  .docs-nav .ic{width:18px;text-align:center;flex:none}
+  .docs-nav .none{color:var(--muted);font-size:13px;padding:8px 10px}
+  .docs-main{flex:1;min-width:0;padding:24px 30px}
+  .docs-main .doc-title{font-size:22px;font-weight:700;margin:0 0 18px;display:flex;align-items:center;gap:10px}
+  .docs-main p{margin:0 0 14px;color:#374151}
+  .docs-main ul{margin:0 0 14px;padding-left:20px;color:#374151}
+  .docs-main li{margin:5px 0}
+  .docs-main code{background:#eef0ec;border-radius:5px;padding:1px 6px;font-size:13px}
+  .docs-pn-row{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);margin-top:22px;padding-top:18px}
+  .docs-pn{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 14px;font:inherit;font-weight:600;color:var(--ink);cursor:pointer;max-width:48%;text-align:left}
+  .docs-pn:hover{border-color:var(--green-2);color:var(--green)}
+  .docs-pn:disabled{opacity:0;cursor:default;pointer-events:none}
+  .docs-pn small{display:block;color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  @media(max-width:720px){.docs{flex-direction:column}.docs-side{width:auto;border-right:0;border-bottom:1px solid var(--line)}}
+  /* dark-mode overrides for colors hardcoded in the light theme */
+  [data-theme="dark"] nav a.active,
+  [data-theme="dark"] .docs-nav a.active,
+  [data-theme="dark"] .strengths li{background:rgba(47,158,110,.16)}
+  [data-theme="dark"] nav .tag{background:#26302b;color:var(--muted)}
+  [data-theme="dark"] .chip.off{background:#161d1a;color:#5b6b63;border-color:#26302b}
+  [data-theme="dark"] button.ghost,[data-theme="dark"] .docs-pn{background:#161d1a}
+  [data-theme="dark"] h2,[data-theme="dark"] .catname{color:#9aa8a1}
+  [data-theme="dark"] .status{color:#c7d2cc}
+  [data-theme="dark"] .item{border-top-color:#26302b}
+  [data-theme="dark"] .bar,[data-theme="dark"] .mixbar{background:#26302b}
+  [data-theme="dark"] .docs-main code{background:#26302b}
+  [data-theme="dark"] .docs-main p,[data-theme="dark"] .docs-main ul{color:#c7d2cc}
+  [data-theme="dark"] .docs-nav a:hover{background:#1c2420}
+  [data-theme="dark"] .proof{background:rgba(47,158,110,.12);border-color:#2f6b50}
+  [data-theme="dark"] .err{background:#3a1e1e;border-color:#5b2b2b;color:#f3b0b0}
+  [data-theme="dark"] .foot{color:#6b7670}
+  [data-theme="dark"] input,[data-theme="dark"] textarea{background:#0f1512;color:var(--ink)}
+  [data-theme="dark"] input::placeholder,[data-theme="dark"] textarea::placeholder{color:#6b7670}
+  /* theme toggle (sidebar, below the nav) */
+  .themerow{display:flex;gap:10px;align-items:center;padding:10px 12px;margin-top:10px;border-top:1px solid var(--line);color:var(--ink);font-weight:500;cursor:pointer;user-select:none}
+  .themerow svg{width:19px;height:19px;stroke:#9aa3a9;flex:none}
+  .themerow .switch{margin-left:auto;width:38px;height:22px;border-radius:20px;background:var(--line);position:relative;transition:background .2s;flex:none}
+  .themerow .switch i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  [data-theme="dark"] .themerow .switch{background:var(--green)}
+  [data-theme="dark"] .themerow .switch i{left:18px}
 </style>
 </head>
 <body>
@@ -102,6 +155,11 @@
       <a data-view="audit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> AEO Audit <span class="tag">New</span></a>
       <a data-view="docs"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg> Documentation</a>
     </nav>
+    <div class="themerow" id="themeToggle" role="button" tabindex="0" aria-label="Toggle dark mode">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <span>Dark mode</span>
+      <span class="switch"><i></i></span>
+    </div>
   </aside>
 
   <div class="main">
@@ -292,26 +350,20 @@
       </div>
 
       <div id="view-docs" class="view hidden">
-        <h1>How it works</h1>
-        <p class="sub">The tool runs a pipeline that reads a page, scores how quotable it is to AI answer engines, fixes it, and proves the improvement.</p>
-        <div class="card">
-          <h2>The tabs</h2>
-          <div class="item"><div class="item-h"><span>Analyze</span></div><p class="action">Reads any page and scores it 0–100 on six citation-readiness signals, with fixes ranked by how many points each is worth.</p></div>
-          <div class="item"><div class="item-h"><span>Rewrite</span></div><p class="action">Claude rewrites the weak parts (generic headings, buried answers) and we re-score to prove the lift. Consumes API credit.</p></div>
-          <div class="item"><div class="item-h"><span>Schema</span></div><p class="action">Generates ready-to-paste JSON-LD structured-data markup so Google understands the page.</p></div>
-          <div class="item"><div class="item-h"><span>Report</span></div><p class="action">A shareable one-page client report — score, grade, ranked fixes, schema — you can download as HTML.</p></div>
-          <div class="item"><div class="item-h"><span>AEO Audit</span></div><p class="action">The same signals as a pass/warn/fail checklist — structure, schema, Open Graph, canonical, HTTPS/HSTS, JS-free rendering — grouped by category and exportable as CSV. Free, no API credit.</p></div>
-          <div class="item"><div class="item-h"><span>Competitors</span></div><p class="action">Asks Claude your customers' questions with live web search and shows which rival domains win the citations. Slow (live search) and consumes credit.</p></div>
-          <div class="item"><div class="item-h"><span>Sentiment</span></div><p class="action">Gets each AI answer to your customers' questions, then classifies how your brand is portrayed — positive, neutral, or negative.</p></div>
-        </div>
-        <div class="card">
-          <h2>What the score does and doesn't mean</h2>
-          <p class="action">The score measures on-page content signals — not real-world ranking or domain authority. A page can score low and still rank well if it has strong backlinks (and vice-versa). Use it to make content more quotable, not to predict rankings.</p>
-          <ul class="spec">
-            <li>Google AI Overviews has no public API, so it cannot be tested — only Claude (and future ChatGPT/Perplexity) can.</li>
-            <li>Recency needs a real published/updated date — the tool never invents one.</li>
-            <li>Rewrites and citation checks call Claude and consume API credit.</li>
-          </ul>
+        <h1>Documentation</h1>
+        <p class="sub">Everything CitePilot does, one topic at a time.</p>
+        <div class="docs">
+          <aside class="docs-side">
+            <input id="docs-search" class="docs-search" type="text" placeholder="Search docs…">
+            <nav class="docs-nav" id="docs-nav"></nav>
+          </aside>
+          <div class="docs-main">
+            <div id="docs-content"></div>
+            <div class="docs-pn-row">
+              <button class="docs-pn" id="docs-prev"></button>
+              <button class="docs-pn" id="docs-next"></button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -650,6 +702,102 @@ async function runPulse(){
 $('hi-pulse').addEventListener('click', runPulse);
 $('hi-refresh').addEventListener('click', loadTracked);
 
+// --- documentation tab ---
+const DOCS = [
+  {id:'overview', icon:'📖', title:'Overview', html:`
+    <p>CitePilot reads a web page, scores how quotable it is to AI answer engines, fixes the weak parts, and verifies the improvement.</p>
+    <p>The engine is a pipeline — <code>Ingest → Analyze → Schema / Rewrite / Report / AEO Audit</code> — with a separate citation harness that checks whether AI answers actually cite your domain.</p>
+    <p>Rule-based tabs (Analyze, AEO Audit, Schema, Report, History) are free and call no model. Model-backed tabs (Rewrite, Competitors, Sentiment) use Claude and consume API credit.</p>`},
+  {id:'analyze', icon:'📊', title:'Analyze', html:`
+    <p>Paste a URL. CitePilot reads the page and scores it 0–100 across six citation-readiness signals, then lists the fixes ranked by how many points each is worth.</p>
+    <ul>
+      <li><b>Header quality</b> — specific, question-style headings</li>
+      <li><b>Answer-first structure</b> — the point up front, not buried</li>
+      <li><b>Lists &amp; tables</b> — structure an AI can extract</li>
+      <li><b>Factual specificity</b> — numbers, dates, named entities</li>
+      <li><b>Author &amp; publisher signals</b> — byline and meta description</li>
+      <li><b>Freshness</b> — a real published or updated date</li>
+    </ul>
+    <p>Free — no API key needed.</p>`},
+  {id:'audit', icon:'✅', title:'AEO Audit', html:`
+    <p>Enter any URL to run an Answer Engine Optimization audit — the same signals as Analyze, shown as a pass / warn / fail checklist.</p>
+    <p>Checks are grouped into categories:</p>
+    <ul>
+      <li><b>Structure &amp; Schema</b> — Schema.org markup, FAQ schema, Open Graph tags, canonical tag</li>
+      <li><b>Content Quality</b> — meta description plus the six content signals</li>
+      <li><b>Technical</b> — HTTPS and HSTS</li>
+      <li><b>Server-Side Rendering</b> — whether the page renders without JavaScript</li>
+    </ul>
+    <p>Every row shows a status and a one-line detail, and the whole audit exports to <code>audit.csv</code>. Free — the technical checks read straight from the page fetch, no extra calls.</p>`},
+  {id:'rewrite', icon:'✍️', title:'Rewrite', html:`
+    <p>Paste a URL. Claude rewrites the weak parts — generic headings, buried answers, thin structure — then CitePilot re-scores the rewrite to prove the lift.</p>
+    <p>Uses Claude and consumes API credit (~30–60s per page). Needs <code>ANTHROPIC_API_KEY</code>.</p>`},
+  {id:'schema', icon:'🔗', title:'Schema', html:`
+    <p>Paste a URL. CitePilot detects the best schema type (Article, FAQ, or HowTo) and generates ready-to-paste JSON-LD that helps search and AI understand the page.</p>
+    <p>If the page already has schema, the generated markup is merged with it. Free.</p>`},
+  {id:'report', icon:'📄', title:'Report', html:`
+    <p>Paste a URL to generate a shareable one-page report — score, grade, ranked fixes, strengths, and paste-ready schema — that you can download as HTML and hand to a client.</p>
+    <p>Free.</p>`},
+  {id:'competitors', icon:'🏆', title:'Competitors', html:`
+    <p>Enter your domain and a few questions your customers ask. CitePilot asks Claude each question with live web search and shows which domains win the citations, and how often yours does.</p>
+    <p>Slow (live search) and consumes API credit. Results are saved to History.</p>`},
+  {id:'sentiment', icon:'💬', title:'Sentiment', html:`
+    <p>Enter your brand and a few questions. CitePilot gets each AI answer, then classifies whether your brand is mentioned and how it's portrayed — positive, neutral, or negative — with a quoted piece of evidence.</p>
+    <p>Two Claude calls per question. Results are saved to History.</p>`},
+  {id:'history', icon:'🕘', title:'History & trends', html:`
+    <p>Every analyze, sentiment, and competitor run is saved with a timestamp, so you can watch a page or brand trend over time.</p>
+    <p><b>Pulse</b> re-checks every tracked page now and records a fresh score — free, since analysis calls no model.</p>
+    <p>Each tracked item shows its kind and a matching score: <code>/100</code> for Analyze, <code>% positive</code> for Sentiment, <code>% cited</code> for Competitors.</p>`},
+  {id:'score', icon:'🎯', title:'What the score means', html:`
+    <p>The score measures <b>on-page content signals</b> — not real-world ranking or domain authority. A page can score low and still rank well with strong backlinks, and vice-versa.</p>
+    <p>Use it to make content more quotable, not to predict rankings.</p>
+    <ul>
+      <li>Google AI Overviews has no public API, so it can't be citation-tested — only Claude today.</li>
+      <li>Recency needs a real date; CitePilot never invents one.</li>
+    </ul>`},
+  {id:'pipeline', icon:'⚙️', title:'Pipeline & phases', html:`
+    <p>CitePilot is seven phases, each a standalone CLI that reads and writes JSON:</p>
+    <ul>
+      <li><b>1. Ingest</b> (<code>ingest.py</code>) — URL/HTML/Markdown → normalized JSON</li>
+      <li><b>2. Analyze</b> (<code>analyzer.py</code>) — six-factor scoring</li>
+      <li><b>3. Schema</b> (<code>generator.py</code>) — JSON-LD</li>
+      <li><b>4. Rewrite</b> (<code>rewriter.py</code>) — Claude rewrite</li>
+      <li><b>5. Report</b> (<code>rubric.py</code>) — client report</li>
+      <li><b>6. Harness</b> (<code>harness.py</code>) — live citation test</li>
+      <li><b>7. Dashboard</b> (<code>app.py</code>) — this UI</li>
+    </ul>
+    <p>The dashboard orchestrates them; you can also run any phase alone from the command line.</p>`},
+  {id:'keys', icon:'🔑', title:'API keys & cost', html:`
+    <p>Rule-based tabs are free. Model-backed tabs need an Anthropic API key, set in the environment or a gitignored <code>.env</code> file:</p>
+    <p><code>ANTHROPIC_API_KEY=sk-ant-...</code></p>
+    <p><b>Free:</b> Analyze, AEO Audit, Schema, Report, History.<br><b>Costs credit:</b> Rewrite, Competitors, Sentiment.</p>`},
+];
+let docsCurrent = DOCS[0].id;
+function renderDocsNav(filter){
+  const q = (filter||'').trim().toLowerCase();
+  const items = DOCS.filter(d=> !q || d.title.toLowerCase().includes(q) || d.html.toLowerCase().includes(q));
+  const nav = $('docs-nav');
+  if(!items.length){ nav.innerHTML = '<div class="none">No matching topics.</div>'; return; }
+  nav.innerHTML = items.map(d=>`<a data-doc="${d.id}" class="${d.id===docsCurrent?'active':''}"><span class="ic">${d.icon}</span>${escapeHtml(d.title)}</a>`).join('');
+  nav.querySelectorAll('a[data-doc]').forEach(a=>a.addEventListener('click',()=>showDoc(a.dataset.doc)));
+}
+function showDoc(id){
+  const idx = DOCS.findIndex(d=>d.id===id);
+  if(idx<0) return;
+  docsCurrent = id;
+  const d = DOCS[idx];
+  $('docs-content').innerHTML = `<div class="doc-title"><span>${d.icon}</span> ${escapeHtml(d.title)}</div>${d.html}`;
+  const prev = DOCS[idx-1], next = DOCS[idx+1], pb = $('docs-prev'), nb = $('docs-next');
+  if(prev){ pb.disabled=false; pb.innerHTML = `<small>← Previous</small>${escapeHtml(prev.title)}`; } else { pb.disabled=true; pb.innerHTML=''; }
+  if(next){ nb.disabled=false; nb.innerHTML = `<small>Next →</small>${escapeHtml(next.title)}`; } else { nb.disabled=true; nb.innerHTML=''; }
+  document.querySelectorAll('#docs-nav a[data-doc]').forEach(a=>a.classList.toggle('active', a.dataset.doc===id));
+}
+$('docs-prev').addEventListener('click',()=>{ const i=DOCS.findIndex(d=>d.id===docsCurrent); if(i>0) showDoc(DOCS[i-1].id); });
+$('docs-next').addEventListener('click',()=>{ const i=DOCS.findIndex(d=>d.id===docsCurrent); if(i<DOCS.length-1) showDoc(DOCS[i+1].id); });
+$('docs-search').addEventListener('input', e=>renderDocsNav(e.target.value));
+renderDocsNav();
+showDoc(DOCS[0].id);
+
 $('go').addEventListener('click', analyze);
 $('url').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });
 $('rewriteBtn').addEventListener('click', rewrite);
@@ -666,6 +814,16 @@ $('rp-download').addEventListener('click', downloadReport);
 $('au-go').addEventListener('click', runAudit);
 $('au-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runAudit(); });
 $('au-export').addEventListener('click', exportAudit);
+
+// --- theme toggle ---
+function toggleTheme(){
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if(dark) document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme','dark');
+  try{ localStorage.setItem('cp-theme', dark ? 'light' : 'dark'); }catch(e){}
+}
+$('themeToggle').addEventListener('click', toggleTheme);
+$('themeToggle').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleTheme(); } });
 </script>
 </body>
 </html>
