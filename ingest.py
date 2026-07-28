@@ -28,6 +28,8 @@ import requests
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 
+from common import slugify
+
 DEFAULT_TIMEOUT_SECONDS = 15
 # Note: <header> is deliberately NOT stripped — articles often wrap their H1 in
 # one. Page-level headers are excluded instead by preferring the <main>/<article>
@@ -54,11 +56,6 @@ class IngestError(Exception):
 
 def normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
-
-
-def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
-    return slug or "output"
 
 
 def parse_date(value: Optional[str]) -> Optional[str]:

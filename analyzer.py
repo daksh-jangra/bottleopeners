@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from datetime import date
 from pathlib import Path
 from typing import Any
 
+from common import slugify
 from rules import (
     score_answer_first_structure,
     score_byline_authority,
@@ -38,11 +38,6 @@ REQUIRED_FIELDS = {
 
 class AnalyzerError(Exception):
     pass
-
-
-def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
-    return slug or "output"
 
 
 def _validate_date(value: str, field_name: str) -> None:

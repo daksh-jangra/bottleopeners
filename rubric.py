@@ -19,12 +19,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any, Optional
 
 from analyzer import build_analysis
+from common import slugify
 
 FACTOR_LABELS = {
     "header_quality": "Header quality",
@@ -47,11 +47,6 @@ RECOMMENDATIONS = {
 
 class RubricError(Exception):
     pass
-
-
-def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
-    return slug or "output"
 
 
 def load_json(path: str, label: str) -> dict[str, Any]:

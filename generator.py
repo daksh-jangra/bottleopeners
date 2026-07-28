@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
+from common import slugify
 from templates import build_article_schema, build_faq_schema, build_howto_schema
 
 REQUIRED_FIELDS = {
@@ -28,11 +29,6 @@ QUESTION_PREFIXES = ("what", "why", "how", "when", "where", "who", "which", "can
 
 class GeneratorError(Exception):
     pass
-
-
-def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
-    return slug or "output"
 
 
 def normalize_whitespace(text: str) -> str:

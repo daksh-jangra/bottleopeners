@@ -26,10 +26,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any, Optional
+
+from common import slugify
 
 DEFAULT_MODEL = "claude-opus-4-8"
 DEFAULT_MAX_TOKENS = 16000
@@ -143,11 +144,6 @@ def load_dotenv(path: str = ".env") -> None:
         value = value.strip().strip("'").strip('"')
         if key and key not in os.environ:
             os.environ[key] = value
-
-
-def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
-    return slug or "output"
 
 
 def load_json(path: str, label: str) -> dict[str, Any]:

@@ -25,11 +25,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any, Callable, Optional
 from urllib.parse import urlparse
+
+from common import load_dotenv, slugify
 
 DEFAULT_MODEL = "claude-opus-4-8"
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search"}
@@ -47,27 +48,6 @@ SEARCH_SYSTEM_PROMPT = (
 
 class HarnessError(Exception):
     pass
-
-
-def load_dotenv(path: str = ".env") -> None:
-    """Load KEY=VALUE lines from a local .env; real environment values win."""
-    env_path = Path(path)
-    if not env_path.is_file():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        key = key.strip()
-        value = value.strip().strip("'").strip('"')
-        if key and key not in os.environ:
-            os.environ[key] = value
-
-
-def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
-    return slug or "output"
 
 
 def normalize_domain(value: str) -> str:
