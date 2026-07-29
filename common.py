@@ -14,6 +14,11 @@ from pathlib import Path
 # the dashboard. One place to change when swapping models.
 DEFAULT_MODEL = "claude-opus-4-8"
 
+# Cheaper, faster model for simple classification (e.g. sentiment labelling),
+# where a small model is plenty. The answer-generation step still uses the
+# default model so it stays representative of a real answer engine.
+CLASSIFIER_MODEL = "claude-haiku-4-5-20251001"
+
 
 def slugify(value: str) -> str:
     """Turn arbitrary text into a filesystem-safe slug (or 'output' if empty)."""
