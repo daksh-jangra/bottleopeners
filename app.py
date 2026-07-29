@@ -28,6 +28,7 @@ import harness
 import ingest
 import rewriter
 import rubric
+import teardown
 from common import CLASSIFIER_MODEL, DEFAULT_MODEL, load_dotenv
 
 app = Flask(__name__)
@@ -180,6 +181,32 @@ def api_competitors():
         _snapshot_bvi(target_norm)
         return jsonify(result)
     except harness.HarnessError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return _server_error(exc)
+
+
+@app.post("/api/teardown")
+def api_teardown():
+    """Diff a competitor's page against yours: where they beat you, and how to fix it."""
+    data = request.json or {}
+    your_url = (data.get("your_url") or "").strip()
+    competitor_url = (data.get("competitor_url") or "").strip()
+    if not your_url or not competitor_url:
+        return jsonify({"error": "Enter both your page URL and a competitor page URL."}), 400
+
+    try:
+        you_payload = _fetch_payload(your_url)
+        them_payload = _fetch_payload(competitor_url)
+        you = analyzer.build_analysis(you_payload)
+        them = analyzer.build_analysis(them_payload)
+        result = teardown.compare(you, them)
+        result["your"] = {"url": your_url, "title": you_payload.get("title")}
+        result["competitor"] = {"url": competitor_url, "title": them_payload.get("title")}
+        db.save_run("analyze", your_url, you["total_score"], {"title": you_payload.get("title")})
+        _snapshot_bvi(your_url)
+        return jsonify(result)
+    except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return _server_error(exc)

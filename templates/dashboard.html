@@ -151,6 +151,7 @@
       <a class="active" data-view="analyze"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg> Analyze</a>
       <a data-view="niche"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg> Niche Explorer <span class="tag">New</span></a>
       <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
+      <a data-view="teardown"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h6"/><path d="M15 12h6"/><path d="M12 3v18"/><path d="m6 8-3 4 3 4"/><path d="m18 8 3 4-3 4"/></svg> Teardown <span class="tag">New</span></a>
       <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
       <a data-view="brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 12l4-3"/><circle cx="12" cy="12" r="1.6"/></svg> Brand Index <span class="tag">New</span></a>
       <a data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> History <span class="tag">New</span></a>
@@ -262,6 +263,37 @@
           <div class="card">
             <h2>Who's winning the citations</h2>
             <div id="c-table"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-teardown" class="view hidden">
+        <h1>Competitor teardown</h1>
+        <p class="sub">Lost a citation to another page? Drop in both URLs. We score them on the same six signals, then show exactly where they beat you - and how to close each gap.</p>
+        <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
+          <input id="td-you" type="text" placeholder="your page URL, e.g. https://yoursite.com/guide">
+          <input id="td-them" type="text" placeholder="competitor page URL (the one that got cited)">
+          <div><button class="primary" id="td-go">Compare pages</button>
+          <span class="cur" style="margin-left:10px">Reads both pages - free, no API key needed.</span></div>
+        </div>
+        <div id="td-err" class="err hidden"></div>
+        <div id="td-results" class="hidden">
+          <div class="card">
+            <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end">
+              <div><p class="cur" id="td-you-name" style="margin:0 0 2px">You</p><div class="score"><span id="td-you-score">0</span><small>/100</small></div></div>
+              <div style="font-size:22px;color:var(--muted);padding-bottom:6px">vs</div>
+              <div><p class="cur" id="td-them-name" style="margin:0 0 2px">Competitor</p><div class="score"><span id="td-them-score">0</span><small>/100</small></div></div>
+            </div>
+            <p class="cur" id="td-gap-note" style="margin:12px 0 0"></p>
+          </div>
+          <div class="card">
+            <h2>Why they win</h2>
+            <p class="cur" style="margin-top:0">Signals where the competitor scores higher, biggest gap first.</p>
+            <div id="td-gaps"></div>
+          </div>
+          <div class="card">
+            <h2>Where you're already ahead</h2>
+            <div id="td-wins"></div>
           </div>
         </div>
       </div>
@@ -806,6 +838,47 @@ function sparkline(scores){
 }
 function biErr(m){ const e=$('bi-err'); e.textContent=m; e.classList.remove('hidden'); }
 
+// --- competitor teardown ---
+async function runTeardown(){
+  const your_url = $('td-you').value.trim();
+  const competitor_url = $('td-them').value.trim();
+  if(!your_url || !competitor_url){ tdErr('Enter both your page URL and a competitor URL.'); return; }
+  $('td-err').classList.add('hidden'); $('td-results').classList.add('hidden');
+  setBusy($('td-go'), true, 'Comparing…');
+  try{
+    const res = await fetch('/api/teardown',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({your_url,competitor_url})});
+    const data = await res.json();
+    if(!res.ok){ tdErr(data.error || 'Failed.'); return; }
+    renderTeardown(data);
+  }catch(e){ tdErr('Network error: '+e.message); }
+  finally{ setBusy($('td-go'), false, 'Compare pages'); }
+}
+function tdHost(u){ try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return u; } }
+function renderTeardown(d){
+  $('td-you-score').textContent = d.your_score;
+  $('td-them-score').textContent = d.their_score;
+  $('td-you-name').textContent = (d.your&&d.your.title) ? d.your.title : tdHost(d.your&&d.your.url||'You');
+  $('td-them-name').textContent = (d.competitor&&d.competitor.title) ? d.competitor.title : tdHost(d.competitor&&d.competitor.url||'Competitor');
+  const gap = d.score_gap;
+  $('td-gap-note').textContent = gap>0
+    ? `They lead by ${gap} points overall. Close the gaps below to catch up.`
+    : (gap<0 ? `You lead by ${-gap} points overall.` : 'Dead even overall - the factor gaps below show where to pull ahead.');
+  $('td-gaps').innerHTML = (d.gaps||[]).map(f=>`
+    <div class="item">
+      <div class="item-h"><span><b>${escapeHtml(f.label)}</b></span><span class="gain">${f.lead} pts behind</span></div>
+      <div class="cur" style="margin:4px 0">You ${f.you}/${f.max}</div>${bar(f.you,f.max)}
+      <div class="cur" style="margin:4px 0">Them ${f.them}/${f.max}</div>${bar(f.them,f.max)}
+      <p class="action">${escapeHtml(f.recommendation)}</p>
+      ${f.your_issue ? `<div class="cur">⚠ On your page: ${escapeHtml(f.your_issue)}</div>` : ''}
+    </div>`).join('') || '<p>You match or beat them on every signal - no gaps to close.</p>';
+  $('td-wins').innerHTML = (d.your_wins||[]).map(f=>`
+    <div class="item"><div class="item-h"><span>${escapeHtml(f.label)}</span>
+    <span class="gain">you ${f.you} vs ${f.them}</span></div></div>`).join('')
+    || '<p class="cur">They lead or tie on every signal right now.</p>';
+  $('td-results').classList.remove('hidden');
+}
+function tdErr(m){ const e=$('td-err'); e.textContent=m; e.classList.remove('hidden'); }
+
 // --- history tab ---
 const KIND_META = {
   analyze:{label:'Analyze', suffix:'/100'},
@@ -914,6 +987,10 @@ const DOCS = [
     <p>Not sure what to test? Enter your brand or domain and a few target keywords, and CitePilot suggests the real customer questions worth checking - phrased the way people actually search, and without naming your brand.</p>
     <p>Each suggestion has an <b>Add to check</b> button that drops it straight into a Competitors citation check, so you go from "what do I even ask?" to a live test in one click.</p>
     <p>Uses a small, fast Claude model (a few seconds, minimal credit). Needs <code>ANTHROPIC_API_KEY</code>.</p>`},
+  {id:'teardown', icon:'🪓', title:'Competitor teardown', html:`
+    <p>Paste your page URL and a competitor's page (the one that got cited). CitePilot scores both on the same six signals and diffs them, so "you lost the citation" becomes "here is exactly where they win."</p>
+    <p><b>Why they win</b> lists every signal where the competitor scores higher, biggest gap first, each with the fix to apply and the specific problem found on your page. <b>Where you're ahead</b> shows the signals you already lead.</p>
+    <p>Free - it reads both pages and reuses the Analyze scorer; no model call. Your page's score is also saved to History.</p>`},
   {id:'competitors', icon:'🏆', title:'Competitors', html:`
     <p>Enter your domain and a few questions your customers ask. CitePilot asks Claude each question with live web search and shows which domains win the citations, and how often yours does.</p>
     <p>Slow (live search) and consumes API credit. Results are saved to History.</p>`},
@@ -987,6 +1064,7 @@ $('bi-domain').addEventListener('keydown', e=>{ if(e.key==='Enter') runBrandInde
 $('ni-addall').addEventListener('click', ()=>{ if(NICHE_QUESTIONS.length) addToCheck(NICHE_QUESTIONS); });
 $('c-queries').addEventListener('input', updateCapNote);
 $('c-go').addEventListener('click', runCompetitors);
+$('td-go').addEventListener('click', runTeardown);
 $('se-go').addEventListener('click', runSentiment);
 $('rw-go').addEventListener('click', runRewriteTab);
 $('rw-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runRewriteTab(); });
