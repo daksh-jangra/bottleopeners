@@ -37,6 +37,7 @@ Tabs:
 | **Rewrite** | Claude rewrites the weak parts, then we re-score to prove the lift. | API |
 | **Schema** | Generates ready-to-paste JSON-LD (Article / FAQ / HowTo). | Free |
 | **Report** | A shareable one-page client report (score, grade, fixes, schema) as HTML. | Free |
+| **Export** | Injects the generated JSON-LD into your page's `<head>` and hands back the patched HTML to publish, plus a punch-list for the content fixes. | Free |
 | **Niche Explorer** | Turns a brand plus keywords into the customer questions worth testing, one click to add them to a citation check. | API |
 | **Competitors** | Asks your customers' questions with live web search and shows which domains win the citations. | API |
 | **Teardown** | Scores your page and a competitor's on the same six signals and diffs them, ranking where they beat you and how to fix each gap. | Free |
@@ -168,6 +169,7 @@ The dashboard wires them together; each phase is also a standalone CLI.
 ├── audit.py          # AEO Audit - pass/warn/fail checklist over the signals
 ├── brandindex.py     # Brand Visibility Index - composite score per domain over time
 ├── teardown.py       # Competitor teardown - diff your six-factor scores against a rival page
+├── export.py         # Publish kit - inject generated JSON-LD into a page's HTML
 ├── db.py             # SQLite persistence for History / trends
 ├── templates/
 │   └── dashboard.html  # Single-page dashboard UI (all tabs)

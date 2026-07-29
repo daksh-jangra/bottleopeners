@@ -158,6 +158,7 @@
       <a data-view="rewrite"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Rewrite <span class="tag">Phase 4</span></a>
       <a data-view="schema"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Schema</a>
       <a data-view="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg> Report</a>
+      <a data-view="export"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Export <span class="tag">New</span></a>
       <a data-view="audit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> AEO Audit <span class="tag">New</span></a>
       <a data-view="docs"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg> Documentation</a>
     </nav>
@@ -417,6 +418,32 @@
           </div>
           <div class="card"><h2>Report preview</h2>
             <iframe id="rp-frame" style="width:100%;height:560px;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-export" class="view hidden">
+        <h1>Export a publish kit</h1>
+        <p class="sub">Stop at advice? No. We patch the one fix we can apply safely - the Schema.org markup - straight into your page and hand you the file to publish, plus a punch-list for the content fixes.</p>
+        <div class="searchcard">
+          <input id="ex-url" type="url" placeholder="https://example.com/your-article">
+          <button class="primary" id="ex-go">Build export</button>
+        </div>
+        <div id="ex-err" class="err hidden"></div>
+        <div id="ex-results" class="hidden">
+          <div class="card">
+            <h2>Auto-applied fix</h2>
+            <p id="ex-applied" style="margin:6px 0 0"></p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+              <button class="primary" id="ex-dl">Download patched HTML</button>
+              <button class="ghost" id="ex-copy">Copy JSON-LD</button>
+            </div>
+            <p class="cur" id="ex-copied" style="margin:8px 0 0"></p>
+          </div>
+          <div class="card">
+            <h2>Do these by hand</h2>
+            <p class="cur" style="margin-top:0">Content fixes we won't touch automatically - each one, ranked by the points it's worth.</p>
+            <div id="ex-fixes"></div>
           </div>
         </div>
       </div>
@@ -879,6 +906,44 @@ function renderTeardown(d){
 }
 function tdErr(m){ const e=$('td-err'); e.textContent=m; e.classList.remove('hidden'); }
 
+// --- export / publish kit ---
+let EXPORT_DATA = null;
+async function runExport(){
+  const url = $('ex-url').value.trim();
+  if(!url){ exErr('Enter a page URL.'); return; }
+  $('ex-err').classList.add('hidden'); $('ex-results').classList.add('hidden'); $('ex-copied').textContent='';
+  setBusy($('ex-go'), true, 'Building…');
+  try{
+    const res = await fetch('/api/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data = await res.json();
+    if(!res.ok){ exErr(data.error || 'Failed.'); return; }
+    EXPORT_DATA = data;
+    renderExport(data);
+  }catch(e){ exErr('Network error: '+e.message); }
+  finally{ setBusy($('ex-go'), false, 'Build export'); }
+}
+function renderExport(d){
+  const where = d.location==='head' ? 'the <head>' : (d.location==='body' ? 'before </body>' : 'the end of the page');
+  const replaced = d.replaced_existing>0 ? ` (replaced ${d.replaced_existing} existing block${d.replaced_existing===1?'':'s'})` : '';
+  $('ex-applied').innerHTML = `Added <b>Schema.org ${escapeHtml(d.detected_type)}</b> markup into ${where}${replaced}. `
+    + `Your page currently scores <b>${d.score}/100</b> (${escapeHtml(d.grade)}) - publish the patched file to lock in the structured-data fix.`;
+  $('ex-fixes').innerHTML = (d.fixes||[]).map((f,i)=>`
+    <div class="item">
+      <div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(f.label)}</span><span class="gain">+${f.potential_gain} pts</span></div>
+      <p class="action">${escapeHtml(f.action)}</p>
+      ${(f.specifics&&f.specifics.length)?'<ul class="spec">'+f.specifics.slice(0,4).map(s=>`<li>${escapeHtml(s)}</li>`).join('')+'</ul>':''}
+    </div>`).join('') || '<p class="cur">No content gaps - the page already maxes the rule-based signals.</p>';
+  $('ex-results').classList.remove('hidden');
+}
+function downloadFile(name, content, type){
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function exErr(m){ const e=$('ex-err'); e.textContent=m; e.classList.remove('hidden'); }
+
 // --- history tab ---
 const KIND_META = {
   analyze:{label:'Analyze', suffix:'/100'},
@@ -983,6 +1048,9 @@ const DOCS = [
   {id:'report', icon:'📄', title:'Report', html:`
     <p>Paste a URL to generate a shareable one-page report - score, grade, ranked fixes, strengths, and paste-ready schema - that you can download as HTML and hand to a client.</p>
     <p>Free.</p>`},
+  {id:'export', icon:'📦', title:'Export', html:`
+    <p>Turns advice into a shippable change. CitePilot injects the generated <b>Schema.org</b> markup straight into your page's <code>&lt;head&gt;</code> (removing any stale JSON-LD first) and hands you the patched HTML to publish - the one fix it can apply mechanically and safely.</p>
+    <p>The content fixes - headings, answer-first structure, freshness - come back as a ranked punch-list rather than being rewritten into your markup, so nothing on the page breaks. Download the patched file or copy the JSON-LD. Free - no model call.</p>`},
   {id:'niche', icon:'🧭', title:'Niche Explorer', html:`
     <p>Not sure what to test? Enter your brand or domain and a few target keywords, and CitePilot suggests the real customer questions worth checking - phrased the way people actually search, and without naming your brand.</p>
     <p>Each suggestion has an <b>Add to check</b> button that drops it straight into a Competitors citation check, so you go from "what do I even ask?" to a live test in one click.</p>
@@ -1065,6 +1133,13 @@ $('ni-addall').addEventListener('click', ()=>{ if(NICHE_QUESTIONS.length) addToC
 $('c-queries').addEventListener('input', updateCapNote);
 $('c-go').addEventListener('click', runCompetitors);
 $('td-go').addEventListener('click', runTeardown);
+$('ex-go').addEventListener('click', runExport);
+$('ex-dl').addEventListener('click', ()=>{ if(EXPORT_DATA) downloadFile(EXPORT_DATA.filename||'patched.html', EXPORT_DATA.patched_html, 'text/html'); });
+$('ex-copy').addEventListener('click', async ()=>{
+  if(!EXPORT_DATA) return;
+  try{ await navigator.clipboard.writeText(EXPORT_DATA.schema_script); $('ex-copied').textContent='JSON-LD copied to clipboard.'; }
+  catch(e){ $('ex-copied').textContent='Copy failed - select the schema in the Schema tab instead.'; }
+});
 $('se-go').addEventListener('click', runSentiment);
 $('rw-go').addEventListener('click', runRewriteTab);
 $('rw-url').addEventListener('keydown', e=>{ if(e.key==='Enter') runRewriteTab(); });
