@@ -25,11 +25,15 @@ import socket
 import sys
 from pathlib import Path
 from typing import Iterable, Optional
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
+from requests.adapters import HTTPAdapter
+from urllib3.connection import HTTPConnection, HTTPSConnection
+from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from urllib3.poolmanager import PoolManager
 
 from common import slugify
 
@@ -392,13 +396,24 @@ def extract_markdown_payload(text: str, source: str) -> dict[str, object]:
     }
 
 
-def guard_url(url: str) -> None:
-    """Raise IngestError if the URL is unsafe to fetch server-side.
+def _is_blocked_ip(ip: ipaddress._BaseAddress) -> bool:
+    return bool(
+        ip.is_private or ip.is_loopback or ip.is_link_local
+        or ip.is_reserved or ip.is_multicast or ip.is_unspecified
+    )
+
+
+def guard_url(url: str) -> Optional[str]:
+    """Validate a URL for server-side fetching and return the IP to pin to.
 
     Blocks non-http(s) schemes and hosts that resolve to private, loopback, or
-    link-local addresses (the SSRF vectors). This is a best-effort check at
-    resolve time; it does not defend against DNS-rebinding after the check.
-    Bypassed when CITEPILOT_ALLOW_PRIVATE=1 (e.g. auditing a local dev server).
+    link-local addresses (the SSRF vectors), then returns one validated public
+    IP so the caller can pin the connection to it (see _PinnedIPAdapter). Every
+    address the host resolves to must be public - if any is internal we refuse,
+    since we can't tell which one a later resolution would pick.
+
+    Returns None when CITEPILOT_ALLOW_PRIVATE=1 (dev mode, e.g. auditing a local
+    server): the URL is accepted without resolution and without IP pinning.
     """
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
@@ -407,19 +422,89 @@ def guard_url(url: str) -> None:
     if not host:
         raise IngestError("The URL has no host.")
     if ALLOW_PRIVATE_URLS:
-        return
+        return None
     try:
         infos = socket.getaddrinfo(host, None)
     except socket.gaierror:
         raise IngestError(f"Could not resolve host: {host}") from None
+    safe_ip = None
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
-        if (ip.is_private or ip.is_loopback or ip.is_link_local
-                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+        if _is_blocked_ip(ip):
             raise IngestError(
                 "Refusing to fetch a private, loopback, or internal address. "
                 "Set CITEPILOT_ALLOW_PRIVATE=1 to allow local URLs."
             )
+        if safe_ip is None:
+            safe_ip = info[4][0]
+    return safe_ip
+
+
+def _pinned_pool_manager(pinned_ip: str, **kwargs) -> PoolManager:
+    """A PoolManager whose connections always dial `pinned_ip`.
+
+    The connection keeps its real hostname for the Host header, TLS SNI, and
+    certificate verification; only the socket's connect target is swapped for
+    the pre-validated IP. This closes the DNS-rebinding (TOCTOU) window between
+    guard_url()'s resolution check and urllib3's own resolution at connect time.
+    """
+
+    class _PinnedHTTPConnection(HTTPConnection):
+        def _new_conn(self):
+            real_host = self.host
+            self.host = pinned_ip  # only affects the address create_connection dials
+            try:
+                return super()._new_conn()
+            finally:
+                self.host = real_host  # restore before Host header / SNI / cert checks
+
+    class _PinnedHTTPSConnection(HTTPSConnection):
+        def _new_conn(self):
+            real_host = self.host
+            self.host = pinned_ip
+            try:
+                return super()._new_conn()
+            finally:
+                self.host = real_host
+
+    class _PinnedHTTPPool(HTTPConnectionPool):
+        ConnectionCls = _PinnedHTTPConnection
+
+    class _PinnedHTTPSPool(HTTPSConnectionPool):
+        ConnectionCls = _PinnedHTTPSConnection
+
+    manager = PoolManager(**kwargs)
+    manager.pool_classes_by_scheme = {"http": _PinnedHTTPPool, "https": _PinnedHTTPSPool}
+    return manager
+
+
+class _PinnedIPAdapter(HTTPAdapter):
+    """requests adapter that pins every connection to one pre-validated IP."""
+
+    def __init__(self, pinned_ip: str, *args, **kwargs):
+        self._pinned_ip = pinned_ip
+        super().__init__(*args, **kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        self.poolmanager = _pinned_pool_manager(
+            self._pinned_ip,
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            **pool_kwargs,
+        )
+
+
+def _build_session(pinned_ip: Optional[str]) -> requests.Session:
+    session = requests.Session()
+    if pinned_ip:
+        adapter = _PinnedIPAdapter(pinned_ip)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+    return session
+
+
+MAX_REDIRECTS = 10
 
 
 def fetch_url_response(url: str) -> requests.Response:
@@ -427,21 +512,35 @@ def fetch_url_response(url: str) -> requests.Response:
 
     Callers that only need the HTML use fetch_url(); the audit needs the
     response object too (final URL after redirects, and headers like HSTS).
+
+    Redirects are followed manually so guard_url() runs on every hop and the
+    connection is pinned to the validated IP for that hop. Letting requests
+    auto-follow would leave both an SSRF hole (a redirect to an internal host is
+    never re-checked) and a rebinding window (urllib3 re-resolves per hop).
     """
-    guard_url(url)
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; ContentIngest/1.0)"}
+    current = url
     try:
-        response = requests.get(
-            url,
-            timeout=DEFAULT_TIMEOUT_SECONDS,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; ContentIngest/1.0)"},
-        )
-        response.raise_for_status()
+        for _ in range(MAX_REDIRECTS + 1):
+            pinned_ip = guard_url(current)
+            with _build_session(pinned_ip) as session:
+                response = session.get(
+                    current,
+                    timeout=DEFAULT_TIMEOUT_SECONDS,
+                    headers=headers,
+                    allow_redirects=False,
+                )
+            location = response.headers.get("Location")
+            if response.is_redirect and location:
+                current = urljoin(current, location)
+                continue
+            response.raise_for_status()
+            if not response.text.strip():
+                raise IngestError(f"The URL returned empty content: {url}")
+            return response
+        raise IngestError(f"Too many redirects while fetching {url}")
     except requests.RequestException as exc:
         raise IngestError(f"Unable to fetch URL {url}: {exc}") from None
-
-    if not response.text.strip():
-        raise IngestError(f"The URL returned empty content: {url}")
-    return response
 
 
 def fetch_url(url: str) -> str:

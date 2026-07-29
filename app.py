@@ -27,10 +27,14 @@ import harness
 import ingest
 import rewriter
 import rubric
-from common import DEFAULT_MODEL, load_dotenv
+from common import CLASSIFIER_MODEL, DEFAULT_MODEL, load_dotenv
 
 app = Flask(__name__)
 db.init_db()
+
+# Max questions accepted per Competitors/Sentiment run, to bound cost and time
+# (each question is a live web-search + model call). Also surfaced in the UI.
+MAX_QUERIES_PER_RUN = 10
 
 
 def _server_error(exc: Exception):
@@ -127,7 +131,7 @@ def api_competitors():
     queries = data.get("queries") or []
     if isinstance(queries, str):
         queries = queries.splitlines()
-    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:6]  # cap to bound cost/time
+    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:MAX_QUERIES_PER_RUN]
 
     if not target:
         return jsonify({"error": "Enter your domain."}), 400
@@ -166,6 +170,29 @@ def api_competitors():
         return _server_error(exc)
 
 
+@app.post("/api/niche")
+def api_niche():
+    data = request.json or {}
+    brand = (data.get("brand") or "").strip()
+    keywords = (data.get("keywords") or "").strip()
+    industry = (data.get("industry") or "").strip()
+
+    if not brand and not keywords:
+        return jsonify({"error": "Enter your brand/domain or some target keywords."}), 400
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to suggest questions."}), 400
+
+    try:
+        questions = harness.suggest_queries(brand, keywords, industry, CLASSIFIER_MODEL)
+        if not questions:
+            return jsonify({"error": "Could not generate questions; try adding keywords or an industry."}), 400
+        return jsonify({"brand": brand, "questions": questions})
+    except harness.HarnessError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return _server_error(exc)
+
+
 @app.post("/api/sentiment")
 def api_sentiment():
     data = request.json or {}
@@ -173,7 +200,7 @@ def api_sentiment():
     queries = data.get("queries") or []
     if isinstance(queries, str):
         queries = queries.splitlines()
-    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:6]
+    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:MAX_QUERIES_PER_RUN]
 
     if not brand:
         return jsonify({"error": "Enter your brand name."}), 400
