@@ -172,6 +172,15 @@ The dashboard wires them together; each phase is also a standalone CLI.
 └── README.md
 ```
 
+## Tests
+
+Rule-based scoring (`rules.py`) and the AEO audit (`audit.py`) have unit tests:
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
 ## Known limitations
 
 - JavaScript-rendered pages are not fully scraped unless the content is already
@@ -182,6 +191,8 @@ The dashboard wires them together; each phase is also a standalone CLI.
   lists count as separate blocks, and there is no author/meta/date signal, so
   byline and recency scores will be lower than the same content as HTML.
 - Recency needs a real published/updated date - the tool never invents one.
+- The server refuses to fetch private/loopback/internal addresses (a basic SSRF
+  guard). Set `CITEPILOT_ALLOW_PRIVATE=1` to audit a local dev server.
 - Google AI Overviews has no public API, so it cannot be citation-tested.
 - Scores estimate on-page content signals, not real-world ranking or domain
   authority - use them to make content more quotable, not to predict rankings.

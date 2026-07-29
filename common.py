@@ -10,6 +10,10 @@ import os
 import re
 from pathlib import Path
 
+# Default Claude model used by the model-backed phases (rewrite, harness) and
+# the dashboard. One place to change when swapping models.
+DEFAULT_MODEL = "claude-opus-4-8"
+
 
 def slugify(value: str) -> str:
     """Turn arbitrary text into a filesystem-safe slug (or 'output' if empty)."""

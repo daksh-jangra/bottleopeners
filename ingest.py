@@ -17,8 +17,11 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
+import os
 import re
+import socket
 import sys
 from pathlib import Path
 from typing import Iterable, Optional
@@ -31,6 +34,10 @@ from dateutil import parser as date_parser
 from common import slugify
 
 DEFAULT_TIMEOUT_SECONDS = 15
+# SSRF guard: refuse URLs that resolve to private/loopback/internal addresses so
+# a hosted instance can't be pointed at cloud metadata (169.254.169.254) or the
+# internal network. Set CITEPILOT_ALLOW_PRIVATE=1 to audit local dev servers.
+ALLOW_PRIVATE_URLS = os.environ.get("CITEPILOT_ALLOW_PRIVATE") == "1"
 # Note: <header> is deliberately NOT stripped - articles often wrap their H1 in
 # one. Page-level headers are excluded instead by preferring the <main>/<article>
 # root, plus the BOILERPLATE_HEADINGS filter for stray "Log in"-style labels.
@@ -385,12 +392,43 @@ def extract_markdown_payload(text: str, source: str) -> dict[str, object]:
     }
 
 
+def guard_url(url: str) -> None:
+    """Raise IngestError if the URL is unsafe to fetch server-side.
+
+    Blocks non-http(s) schemes and hosts that resolve to private, loopback, or
+    link-local addresses (the SSRF vectors). This is a best-effort check at
+    resolve time; it does not defend against DNS-rebinding after the check.
+    Bypassed when CITEPILOT_ALLOW_PRIVATE=1 (e.g. auditing a local dev server).
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise IngestError("Only http and https URLs are supported.")
+    host = parsed.hostname
+    if not host:
+        raise IngestError("The URL has no host.")
+    if ALLOW_PRIVATE_URLS:
+        return
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        raise IngestError(f"Could not resolve host: {host}") from None
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            raise IngestError(
+                "Refusing to fetch a private, loopback, or internal address. "
+                "Set CITEPILOT_ALLOW_PRIVATE=1 to allow local URLs."
+            )
+
+
 def fetch_url_response(url: str) -> requests.Response:
     """Fetch a URL and return the full response.
 
     Callers that only need the HTML use fetch_url(); the audit needs the
     response object too (final URL after redirects, and headers like HSTS).
     """
+    guard_url(url)
     try:
         response = requests.get(
             url,

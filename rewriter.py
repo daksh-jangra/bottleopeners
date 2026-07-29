@@ -30,9 +30,8 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from common import slugify
+from common import DEFAULT_MODEL, slugify
 
-DEFAULT_MODEL = "claude-opus-4-8"
 DEFAULT_MAX_TOKENS = 16000
 
 REQUIRED_FIELDS = {

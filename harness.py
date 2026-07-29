@@ -30,9 +30,8 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 from urllib.parse import urlparse
 
-from common import load_dotenv, slugify
+from common import DEFAULT_MODEL, load_dotenv, slugify
 
-DEFAULT_MODEL = "claude-opus-4-8"
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search"}
 
 # The harness must behave like a real answer engine that consults the web before

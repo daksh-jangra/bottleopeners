@@ -102,7 +102,7 @@ def _check_schema(payload: dict[str, Any]) -> dict[str, Any]:
     if not types:
         return _row("Structure & Schema", "Schema.org markup", FAIL,
                     "No JSON-LD structured data found on the page.", fix="schema")
-    label = ", ".join(types[:6]) + ("…" if len(types) > 6 else "")
+    label = ", ".join(types[:6]) + ("..." if len(types) > 6 else "")
     plural = "type" if len(types) == 1 else "types"
     return _row("Structure & Schema", "Schema.org markup", PASS,
                 f"{len(types)} {plural}: {label}", fix="schema")

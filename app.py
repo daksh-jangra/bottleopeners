@@ -27,12 +27,16 @@ import harness
 import ingest
 import rewriter
 import rubric
-from common import load_dotenv
+from common import DEFAULT_MODEL, load_dotenv
 
 app = Flask(__name__)
 db.init_db()
 
-DEFAULT_MODEL = "claude-opus-4-8"
+
+def _server_error(exc: Exception):
+    """Log the real error server-side, return a generic message to the client."""
+    app.logger.exception("Unhandled error in API endpoint: %s", exc)
+    return jsonify({"error": "Unexpected server error. Check the server logs."}), 500
 
 
 def _schema_for(payload: dict[str, Any]) -> dict[str, Any]:
@@ -81,7 +85,7 @@ def api_analyze():
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:  # keep the UI honest about failures
-        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+        return _server_error(exc)
 
 
 @app.post("/api/rewrite")
@@ -111,7 +115,7 @@ def api_rewrite():
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
-        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+        return _server_error(exc)
 
 
 @app.post("/api/competitors")
@@ -159,7 +163,7 @@ def api_competitors():
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
-        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+        return _server_error(exc)
 
 
 @app.post("/api/sentiment")
@@ -186,7 +190,7 @@ def api_sentiment():
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
-        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+        return _server_error(exc)
 
 
 @app.post("/api/schema")
@@ -202,7 +206,7 @@ def api_schema():
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
-        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+        return _server_error(exc)
 
 
 @app.post("/api/audit")
@@ -220,7 +224,7 @@ def api_audit():
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
-        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+        return _server_error(exc)
 
 
 @app.post("/api/report")
@@ -243,7 +247,7 @@ def api_report():
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
-        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+        return _server_error(exc)
 
 
 @app.get("/api/tracked")
