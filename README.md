@@ -39,6 +39,7 @@ Tabs:
 | **Report** | A shareable one-page client report (score, grade, fixes, schema) as HTML. | Free |
 | **Niche Explorer** | Turns a brand plus keywords into the customer questions worth testing, one click to add them to a citation check. | API |
 | **Competitors** | Asks your customers' questions with live web search and shows which domains win the citations. | API |
+| **Teardown** | Scores your page and a competitor's on the same six signals and diffs them, ranking where they beat you and how to fix each gap. | Free |
 | **Sentiment** | Gets each AI answer and classifies how your brand is portrayed. | API |
 | **Brand Index** | One 0-100 Brand Visibility Index per domain, blending quotability, citation rate, and sentiment, with a trend over time. | Free |
 | **History** | Every analyze run is saved with a timestamp; "Pulse" re-checks tracked pages to build a trend. | Free |
@@ -166,6 +167,7 @@ The dashboard wires them together; each phase is also a standalone CLI.
 ├── harness.py        # Phase 6 - multi-AI citation test harness (Claude live today)
 ├── audit.py          # AEO Audit - pass/warn/fail checklist over the signals
 ├── brandindex.py     # Brand Visibility Index - composite score per domain over time
+├── teardown.py       # Competitor teardown - diff your six-factor scores against a rival page
 ├── db.py             # SQLite persistence for History / trends
 ├── templates/
 │   └── dashboard.html  # Single-page dashboard UI (all tabs)
