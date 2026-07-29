@@ -149,6 +149,7 @@
     <div class="ws"><div class="ic">CP</div><div><div style="font-weight:700">Your workspace</div><small>Citation readiness</small></div></div>
     <nav>
       <a class="active" data-view="analyze"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg> Analyze</a>
+      <a data-view="niche"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg> Niche Explorer <span class="tag">New</span></a>
       <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
       <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
       <a data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> History <span class="tag">New</span></a>
@@ -219,6 +220,27 @@
       </div><!-- /#results -->
       </div><!-- /#view-analyze -->
 
+      <div id="view-niche" class="view hidden">
+        <h1>Niche Explorer</h1>
+        <p class="sub">Not sure what to test? Enter your brand or keywords and we suggest the real customer questions worth checking - then add them straight to a citation check.</p>
+        <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
+          <input id="ni-brand" type="text" placeholder="your brand or domain, e.g. yoursite.com">
+          <input id="ni-keywords" type="text" placeholder="target keywords, comma-separated (e.g. bottle openers, bar tools)">
+          <input id="ni-industry" type="text" placeholder="industry / vertical (optional, e.g. kitchenware retail)">
+          <div><button class="primary" id="ni-go">Suggest questions</button>
+          <span class="cur" style="margin-left:10px">One quick AI call - suggestions appear in a few seconds.</span></div>
+        </div>
+        <div id="ni-err" class="err hidden"></div>
+        <div id="ni-results" class="hidden">
+          <div class="card">
+            <h2>Suggested questions</h2>
+            <p class="cur" id="ni-note"></p>
+            <div id="ni-list"></div>
+            <div style="margin-top:14px"><button class="primary" id="ni-addall">Add all to citation check</button></div>
+          </div>
+        </div>
+      </div>
+
       <div id="view-competitors" class="view hidden">
         <h1>Competitor citations</h1>
         <p class="sub">Enter your domain and a few questions your customers ask. We ask Claude each one with live web search and show which sites are winning the citations.</p>
@@ -226,7 +248,8 @@
           <input id="c-target" type="text" placeholder="your domain, e.g. yoursite.com">
           <textarea id="c-queries" rows="4" placeholder="One question per line, e.g.&#10;how do I descale a coffee maker&#10;best way to remove limescale from a kettle" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
           <div><button class="primary" id="c-go">Run citation check</button>
-          <span class="cur" style="margin-left:10px">Live web searches - a few queries can take a couple of minutes.</span></div>
+          <span class="cur" style="margin-left:10px">Live web searches - a few queries can take a couple of minutes. Up to 10 questions run per check.</span></div>
+          <div class="cur hidden" id="c-cap-note" style="color:#b45309"></div>
         </div>
         <div id="c-err" class="err hidden"></div>
         <div id="c-results" class="hidden">
@@ -249,7 +272,7 @@
           <input id="se-brand" type="text" placeholder="your brand name, e.g. KitchenAid">
           <textarea id="se-queries" rows="4" placeholder="One question per line, e.g.&#10;what is the best coffee machine descaler&#10;how do I remove limescale from a coffee maker" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
           <div><button class="primary" id="se-go">Run sentiment check</button>
-          <span class="cur" style="margin-left:10px">Two AI calls per question (answer + classify) - a few questions take a couple of minutes.</span></div>
+          <span class="cur" style="margin-left:10px">Two AI calls per question (answer + classify) - a few questions take a couple of minutes. Up to 10 questions run per check.</span></div>
         </div>
         <div id="se-err" class="err hidden"></div>
         <div id="se-results" class="hidden">
@@ -645,6 +668,56 @@ function renderCompetitors(d){
   $('c-results').classList.remove('hidden');
 }
 function cErr(m){ const e=$('c-err'); e.textContent=m; e.classList.remove('hidden'); }
+const MAX_QUERIES = 10;
+function updateCapNote(){
+  const n = $('c-queries').value.split('\n').map(s=>s.trim()).filter(Boolean).length;
+  const note = $('c-cap-note');
+  if(n > MAX_QUERIES){
+    note.textContent = `${n} questions entered - only the first ${MAX_QUERIES} will run.`;
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
+  }
+}
+
+// --- niche explorer ---
+let NICHE_QUESTIONS = [];
+async function runNiche(){
+  const brand = $('ni-brand').value.trim();
+  const keywords = $('ni-keywords').value.trim();
+  const industry = $('ni-industry').value.trim();
+  if(!brand && !keywords){ niErr('Enter your brand/domain or some keywords.'); return; }
+  $('ni-err').classList.add('hidden'); $('ni-results').classList.add('hidden');
+  setBusy($('ni-go'), true, 'Suggesting…');
+  try{
+    const res = await fetch('/api/niche',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand,keywords,industry})});
+    const data = await res.json();
+    if(!res.ok){ niErr(data.error || 'Failed.'); return; }
+    renderNiche(data);
+  }catch(e){ niErr('Network error: '+e.message); }
+  finally{ setBusy($('ni-go'), false, 'Suggest questions'); }
+}
+function renderNiche(d){
+  NICHE_QUESTIONS = d.questions || [];
+  $('ni-note').textContent = NICHE_QUESTIONS.length
+    ? `${NICHE_QUESTIONS.length} question${NICHE_QUESTIONS.length===1?'':'s'} - add any to a citation check.`
+    : 'No questions suggested.';
+  $('ni-list').innerHTML = NICHE_QUESTIONS.map((q,i)=>`
+    <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(q)}</span>
+    <button class="ghost ni-add" data-q="${escapeHtml(q)}">+ Add to check</button></div></div>`).join('');
+  document.querySelectorAll('.ni-add').forEach(b=>b.addEventListener('click',()=>addToCheck([b.dataset.q])));
+  $('ni-results').classList.remove('hidden');
+}
+function addToCheck(questions){
+  if($('ni-brand').value.trim() && !$('c-target').value.trim()) $('c-target').value = $('ni-brand').value.trim();
+  const existing = $('c-queries').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const seen = new Set(existing.map(s=>s.toLowerCase()));
+  questions.forEach(q=>{ if(!seen.has(q.toLowerCase())){ existing.push(q); seen.add(q.toLowerCase()); } });
+  $('c-queries').value = existing.join('\n');
+  updateCapNote();
+  showView('competitors');
+}
+function niErr(m){ const e=$('ni-err'); e.textContent=m; e.classList.remove('hidden'); }
 
 // --- history tab ---
 const KIND_META = {
@@ -719,7 +792,7 @@ const DOCS = [
   {id:'overview', icon:'📖', title:'Overview', html:`
     <p>CitePilot reads a web page, scores how quotable it is to AI answer engines, fixes the weak parts, and verifies the improvement.</p>
     <p>The engine is a pipeline - <code>Ingest → Analyze → Schema / Rewrite / Report / AEO Audit</code> - with a separate citation harness that checks whether AI answers actually cite your domain.</p>
-    <p>Rule-based tabs (Analyze, AEO Audit, Schema, Report, History) are free and call no model. Model-backed tabs (Rewrite, Competitors, Sentiment) use Claude and consume API credit.</p>`},
+    <p>Rule-based tabs (Analyze, AEO Audit, Schema, Report, History) are free and call no model. Model-backed tabs (Niche Explorer, Rewrite, Competitors, Sentiment) use Claude and consume API credit.</p>`},
   {id:'analyze', icon:'📊', title:'Analyze', html:`
     <p>Paste a URL. CitePilot reads the page and scores it 0-100 across six citation-readiness signals, then lists the fixes ranked by how many points each is worth.</p>
     <ul>
@@ -750,6 +823,10 @@ const DOCS = [
   {id:'report', icon:'📄', title:'Report', html:`
     <p>Paste a URL to generate a shareable one-page report - score, grade, ranked fixes, strengths, and paste-ready schema - that you can download as HTML and hand to a client.</p>
     <p>Free.</p>`},
+  {id:'niche', icon:'🧭', title:'Niche Explorer', html:`
+    <p>Not sure what to test? Enter your brand or domain and a few target keywords, and CitePilot suggests the real customer questions worth checking - phrased the way people actually search, and without naming your brand.</p>
+    <p>Each suggestion has an <b>Add to check</b> button that drops it straight into a Competitors citation check, so you go from "what do I even ask?" to a live test in one click.</p>
+    <p>Uses a small, fast Claude model (a few seconds, minimal credit). Needs <code>ANTHROPIC_API_KEY</code>.</p>`},
   {id:'competitors', icon:'🏆', title:'Competitors', html:`
     <p>Enter your domain and a few questions your customers ask. CitePilot asks Claude each question with live web search and shows which domains win the citations, and how often yours does.</p>
     <p>Slow (live search) and consumes API credit. Results are saved to History.</p>`},
@@ -813,6 +890,9 @@ showDoc(DOCS[0].id);
 $('go').addEventListener('click', analyze);
 $('url').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });
 $('rewriteBtn').addEventListener('click', rewrite);
+$('ni-go').addEventListener('click', runNiche);
+$('ni-addall').addEventListener('click', ()=>{ if(NICHE_QUESTIONS.length) addToCheck(NICHE_QUESTIONS); });
+$('c-queries').addEventListener('input', updateCapNote);
 $('c-go').addEventListener('click', runCompetitors);
 $('se-go').addEventListener('click', runSentiment);
 $('rw-go').addEventListener('click', runRewriteTab);

@@ -130,6 +130,103 @@ def run_claude(query: str, model: str) -> tuple[list[str], str]:
     return urls, " ".join(answer_parts).strip()
 
 
+# --- Niche Explorer: suggest customer questions to test -----------------------
+
+NICHE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "questions": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+    },
+    "required": ["questions"],
+    "additionalProperties": False,
+}
+
+
+def clean_queries(raw: list[Any], limit: int = 8) -> list[str]:
+    """Normalize model-suggested questions: trim, drop blanks, de-dupe, cap."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in raw:
+        if not isinstance(item, str):
+            continue
+        text = " ".join(item.split()).strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def build_niche_prompt(brand: str, keywords: str, industry: str, count: int) -> str:
+    """Assemble the instruction that turns a brand/niche into test questions."""
+    lines = [
+        f"Suggest {count} natural questions that real customers would type into an "
+        "AI assistant or search engine when they are looking for products, services, "
+        "or advice in this space.",
+        "",
+        "Rules:",
+        "- Write them the way a customer actually searches, not as marketing copy.",
+        "- Do NOT mention the brand name in the questions; they are for testing "
+        "whether the brand gets cited.",
+        "- Prefer questions where several sites would compete to be the answer.",
+        "- Keep each question under 15 words.",
+        "",
+        "Context:",
+    ]
+    if brand:
+        lines.append(f"- Brand or website: {brand}")
+    if industry:
+        lines.append(f"- Industry / vertical: {industry}")
+    if keywords:
+        lines.append(f"- Target keywords: {keywords}")
+    return "\n".join(lines)
+
+
+def suggest_queries(
+    brand: str,
+    keywords: str = "",
+    industry: str = "",
+    model: str = CLASSIFIER_MODEL,
+    count: int = 8,
+) -> list[str]:
+    """Ask a small model for customer-style test questions for a brand/niche."""
+    try:
+        import anthropic
+    except ImportError as exc:
+        raise HarnessError("The 'anthropic' package is not installed. Run: pip install anthropic") from exc
+
+    prompt = build_niche_prompt(brand, keywords, industry, count)
+    client = anthropic.Anthropic()
+    try:
+        message = client.messages.create(
+            model=model,
+            max_tokens=800,
+            output_config={"format": {"type": "json_schema", "schema": NICHE_SCHEMA}},
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.AuthenticationError as exc:
+        raise HarnessError("Authentication failed; check ANTHROPIC_API_KEY.") from exc
+    except anthropic.APIError as exc:
+        raise HarnessError(f"Claude API request failed: {exc}") from exc
+
+    text = next((getattr(b, "text", "") for b in message.content if getattr(b, "type", None) == "text"), None)
+    if not text:
+        return []
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return []
+    return clean_queries(payload.get("questions", []), count)
+
+
 SENTIMENT_SCHEMA = {
     "type": "object",
     "properties": {
