@@ -152,6 +152,7 @@
       <a data-view="niche"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg> Niche Explorer <span class="tag">New</span></a>
       <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
       <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
+      <a data-view="brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 12l4-3"/><circle cx="12" cy="12" r="1.6"/></svg> Brand Index <span class="tag">New</span></a>
       <a data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> History <span class="tag">New</span></a>
       <a data-view="rewrite"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Rewrite <span class="tag">Phase 4</span></a>
       <a data-view="schema"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Schema</a>
@@ -282,6 +283,36 @@
             <div class="mixlegend" id="se-legend"></div>
           </div>
           <div class="card"><h2>Per question</h2><div id="se-table"></div></div>
+        </div>
+      </div>
+
+      <div id="view-brand" class="view hidden">
+        <h1>Brand Visibility Index</h1>
+        <p class="sub">One 0-100 score per brand, blending page quotability, citation rate, and positive sentiment from your runs - with a trend that builds as you keep checking.</p>
+        <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
+          <input id="bi-domain" list="bi-brands" type="text" placeholder="your domain, e.g. amazon.in">
+          <datalist id="bi-brands"></datalist>
+          <div><button class="primary" id="bi-go">Show index</button>
+          <span class="cur" style="margin-left:10px">Built from your Analyze, Competitors, and Sentiment runs for this domain.</span></div>
+        </div>
+        <div id="bi-err" class="err hidden"></div>
+        <div id="bi-results" class="hidden">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+              <div>
+                <h2 style="margin:0 0 4px">Visibility index</h2>
+                <p class="cur" id="bi-domain-note" style="margin:0"></p>
+              </div>
+              <div class="score" style="display:flex;align-items:baseline;gap:10px"><span><span id="bi-index">0</span><small>/100</small></span><span id="bi-delta" style="font-size:15px"></span></div>
+            </div>
+            <div id="bi-spark" style="margin-top:14px"></div>
+            <p class="cur" id="bi-snapnote" style="margin:8px 0 0"></p>
+          </div>
+          <div class="card">
+            <h2>What's driving it</h2>
+            <p class="cur" style="margin-top:0">Each signal is weighted; missing signals are skipped and the rest reweighted so a gap never drags the score down.</p>
+            <div id="bi-components"></div>
+          </div>
         </div>
       </div>
 
@@ -479,6 +510,7 @@ function showView(name){
 document.querySelectorAll('nav a[data-view]').forEach(a=>a.addEventListener('click',()=>{
   showView(a.dataset.view);
   if(a.dataset.view==='history') loadTracked();
+  if(a.dataset.view==='brand') loadBrands();
 }));
 
 // --- rewrite tab ---
@@ -719,6 +751,61 @@ function addToCheck(questions){
 }
 function niErr(m){ const e=$('ni-err'); e.textContent=m; e.classList.remove('hidden'); }
 
+// --- brand visibility index ---
+async function loadBrands(){
+  try{
+    const res = await fetch('/api/brand-index');
+    const data = await res.json();
+    $('bi-brands').innerHTML = (data.brands||[]).map(b=>`<option value="${escapeHtml(b)}">`).join('');
+  }catch(e){ /* datalist is a convenience; ignore load errors */ }
+}
+async function runBrandIndex(){
+  const domain = $('bi-domain').value.trim();
+  if(!domain){ biErr('Enter your domain.'); return; }
+  $('bi-err').classList.add('hidden'); $('bi-results').classList.add('hidden');
+  setBusy($('bi-go'), true, 'Loading…');
+  try{
+    const res = await fetch('/api/brand-index?domain='+encodeURIComponent(domain));
+    const data = await res.json();
+    if(!res.ok){ biErr(data.error || 'Failed.'); return; }
+    renderBrandIndex(data);
+  }catch(e){ biErr('Network error: '+e.message); }
+  finally{ setBusy($('bi-go'), false, 'Show index'); }
+}
+function renderBrandIndex(d){
+  $('bi-index').textContent = d.index;
+  $('bi-domain-note').textContent = d.domain;
+  const delta = d.delta;
+  $('bi-delta').innerHTML = (delta==null||delta===0) ? ''
+    : (delta>0 ? `<span class="gain">▲ +${delta}</span>` : `<span style="color:#dc2626;font-weight:700">▼ ${delta}</span>`);
+  $('bi-spark').innerHTML = sparkline((d.history||[]).map(h=>h.score));
+  const n = d.snapshots||0;
+  $('bi-snapnote').textContent = n>1 ? `${n} snapshots tracked - trend since first check.` : 'First snapshot - the trend builds as you re-check over time.';
+  $('bi-components').innerHTML = (d.components||[]).map(c=>{
+    const w = Math.round(c.weight*100);
+    if(!c.present){
+      return `<div class="item"><div class="item-h"><span>${escapeHtml(c.label)} <span class="cur">· weight ${w}%</span></span>
+      <span class="cur">no data yet</span></div><div class="cur">Run the matching tab for this domain to include it.</div></div>`;
+    }
+    return `<div class="item"><div class="item-h"><span>${escapeHtml(c.label)} <span class="cur">· weight ${w}%</span></span>
+    <span><b>${c.value}</b>/100</span></div>${bar(c.value,100)}</div>`;
+  }).join('');
+  $('bi-results').classList.remove('hidden');
+}
+function sparkline(scores){
+  if(!scores || scores.length<2) return '';
+  const w=520, h=48, pad=4, max=100, min=0;
+  const step = (w-2*pad)/(scores.length-1);
+  const y = v => h-pad-((v-min)/(max-min))*(h-2*pad);
+  const pts = scores.map((s,i)=>`${(pad+i*step).toFixed(1)},${y(s).toFixed(1)}`).join(' ');
+  const last = scores[scores.length-1];
+  const lx = pad+(scores.length-1)*step, ly = y(last);
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:48px;overflow:visible">
+    <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.2" fill="var(--accent)"/></svg>`;
+}
+function biErr(m){ const e=$('bi-err'); e.textContent=m; e.classList.remove('hidden'); }
+
 // --- history tab ---
 const KIND_META = {
   analyze:{label:'Analyze', suffix:'/100'},
@@ -833,6 +920,10 @@ const DOCS = [
   {id:'sentiment', icon:'💬', title:'Sentiment', html:`
     <p>Enter your brand and a few questions. CitePilot gets each AI answer, then classifies whether your brand is mentioned and how it's portrayed - positive, neutral, or negative - with a quoted piece of evidence.</p>
     <p>Two Claude calls per question. Results are saved to History.</p>`},
+  {id:'brand', icon:'🎯', title:'Brand Visibility Index', html:`
+    <p>One 0-100 score per brand, blending three signals we already collect: <b>page quotability</b> (Analyze), <b>citation rate</b> (Competitors), and <b>positive sentiment</b> share - weighted 40 / 40 / 20.</p>
+    <p>Signals you haven't run yet are skipped, and the remaining weights are rescaled so a missing one never drags the score down. Runs are grouped by domain, so a page URL and a brand check for the same site roll into one index.</p>
+    <p>Every Analyze, Competitors, or Sentiment run snapshots the index, so a trend line and a since-first delta build over time. Free - it only reads stored runs.</p>`},
   {id:'history', icon:'🕘', title:'History & trends', html:`
     <p>Every analyze, sentiment, and competitor run is saved with a timestamp, so you can watch a page or brand trend over time.</p>
     <p><b>Pulse</b> re-checks every tracked page now and records a fresh score - free, since analysis calls no model.</p>
@@ -891,6 +982,8 @@ $('go').addEventListener('click', analyze);
 $('url').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });
 $('rewriteBtn').addEventListener('click', rewrite);
 $('ni-go').addEventListener('click', runNiche);
+$('bi-go').addEventListener('click', runBrandIndex);
+$('bi-domain').addEventListener('keydown', e=>{ if(e.key==='Enter') runBrandIndex(); });
 $('ni-addall').addEventListener('click', ()=>{ if(NICHE_QUESTIONS.length) addToCheck(NICHE_QUESTIONS); });
 $('c-queries').addEventListener('input', updateCapNote);
 $('c-go').addEventListener('click', runCompetitors);

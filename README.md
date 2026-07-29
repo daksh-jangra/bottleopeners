@@ -37,8 +37,10 @@ Tabs:
 | **Rewrite** | Claude rewrites the weak parts, then we re-score to prove the lift. | API |
 | **Schema** | Generates ready-to-paste JSON-LD (Article / FAQ / HowTo). | Free |
 | **Report** | A shareable one-page client report (score, grade, fixes, schema) as HTML. | Free |
+| **Niche Explorer** | Turns a brand plus keywords into the customer questions worth testing, one click to add them to a citation check. | API |
 | **Competitors** | Asks your customers' questions with live web search and shows which domains win the citations. | API |
 | **Sentiment** | Gets each AI answer and classifies how your brand is portrayed. | API |
+| **Brand Index** | One 0-100 Brand Visibility Index per domain, blending quotability, citation rate, and sentiment, with a trend over time. | Free |
 | **History** | Every analyze run is saved with a timestamp; "Pulse" re-checks tracked pages to build a trend. | Free |
 
 "Free" tabs are rule-based and call no model. "API" tabs call Claude and consume
@@ -163,6 +165,7 @@ The dashboard wires them together; each phase is also a standalone CLI.
 ├── rubric.py         # Phase 5 - analysis → client report (JSON + shareable HTML)
 ├── harness.py        # Phase 6 - multi-AI citation test harness (Claude live today)
 ├── audit.py          # AEO Audit - pass/warn/fail checklist over the signals
+├── brandindex.py     # Brand Visibility Index - composite score per domain over time
 ├── db.py             # SQLite persistence for History / trends
 ├── templates/
 │   └── dashboard.html  # Single-page dashboard UI (all tabs)
