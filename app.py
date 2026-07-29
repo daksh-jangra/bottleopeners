@@ -23,13 +23,14 @@ import analyzer
 import audit
 import brandindex
 import db
+import export
 import generator
 import harness
 import ingest
 import rewriter
 import rubric
 import teardown
-from common import CLASSIFIER_MODEL, DEFAULT_MODEL, load_dotenv
+from common import CLASSIFIER_MODEL, DEFAULT_MODEL, load_dotenv, slugify
 
 app = Flask(__name__)
 db.init_db()
@@ -273,6 +274,39 @@ def api_schema():
         schema = _schema_for(payload)
         schema["title"] = payload.get("title")
         return jsonify(schema)
+    except ingest.IngestError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return _server_error(exc)
+
+
+@app.post("/api/export")
+def api_export():
+    """Build a publish kit: the page patched with schema, plus a fix punch-list."""
+    url = (request.json or {}).get("url", "").strip()
+    if not url:
+        return jsonify({"error": "Enter a page URL."}), 400
+    try:
+        html = ingest.fetch_url(url)
+        payload = ingest.extract_html_payload(html, url)
+        analysis = analyzer.build_analysis(payload)
+        schema = _schema_for(payload)
+        report = rubric.build_report(analysis, schema, None)
+        injected = export.inject_schema(html, schema["ready_to_paste"])
+        title = str(payload.get("title") or "page")
+        return jsonify({
+            "url": url,
+            "title": title,
+            "filename": f"{slugify(title)}.html",
+            "score": report["score"],
+            "grade": report["grade"],
+            "detected_type": schema["detected_type"],
+            "schema_script": schema["ready_to_paste"],
+            "patched_html": injected["patched_html"],
+            "location": injected["location"],
+            "replaced_existing": injected["replaced_existing"],
+            "fixes": report["priorities"],
+        })
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
