@@ -70,6 +70,20 @@ def history(kind: str, target: str, limit: int = 200) -> list[dict[str, Any]]:
     ]
 
 
+def runs_by_kind(kind: str, limit: int = 1000) -> list[dict[str, Any]]:
+    """Every run of one kind, newest first - used to group runs by domain."""
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT target, score, created_at FROM runs WHERE kind = ? "
+            "ORDER BY created_at DESC LIMIT ?",
+            (kind, limit),
+        ).fetchall()
+    return [
+        {"target": r["target"], "score": r["score"], "created_at": r["created_at"]}
+        for r in rows
+    ]
+
+
 def tracked_targets(kind: Optional[str] = None) -> list[dict[str, Any]]:
     """One row per (kind, target): run count, latest score/time, and the first score."""
     query = (

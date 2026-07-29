@@ -21,6 +21,7 @@ from flask import Flask, jsonify, render_template, request
 
 import analyzer
 import audit
+import brandindex
 import db
 import generator
 import harness
@@ -41,6 +42,18 @@ def _server_error(exc: Exception):
     """Log the real error server-side, return a generic message to the client."""
     app.logger.exception("Unhandled error in API endpoint: %s", exc)
     return jsonify({"error": "Unexpected server error. Check the server logs."}), 500
+
+
+def _snapshot_bvi(target: str) -> None:
+    """Recompute + snapshot the Brand Visibility Index after a component run.
+
+    Best-effort: a failure here must never break the endpoint that triggered it,
+    so any error is logged and swallowed.
+    """
+    try:
+        brandindex.brand_index(target, record=True)
+    except Exception:  # noqa: BLE001 - snapshotting is non-critical
+        app.logger.exception("Failed to snapshot brand index for %s", target)
 
 
 def _schema_for(payload: dict[str, Any]) -> dict[str, Any]:
@@ -85,6 +98,7 @@ def api_analyze():
             "grade": report["grade"],
             "title": payload.get("title"),
         })
+        _snapshot_bvi(url)
         return jsonify(report)
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
@@ -163,6 +177,7 @@ def api_competitors():
         # Headline number for the trend line: citation rate as a percentage.
         rate = round(100 * target_cited / len(queries)) if queries else 0
         db.save_run("competitors", target_norm, rate, result)
+        _snapshot_bvi(target_norm)
         return jsonify(result)
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
@@ -213,6 +228,7 @@ def api_sentiment():
         # Headline number for the trend line: share of answers that were positive.
         positive_pct = result.get("mix", {}).get("positive", {}).get("pct", 0)
         db.save_run("sentiment", brand, positive_pct, result)
+        _snapshot_bvi(brand)
         return jsonify(result)
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
@@ -303,10 +319,28 @@ def api_pulse():
             analysis = analyzer.build_analysis(payload)
             report = rubric.build_report(analysis, _schema_for(payload), None)
             db.save_run("analyze", url, report["score"], {"grade": report["grade"], "title": payload.get("title")})
+            _snapshot_bvi(url)
             results.append({"target": url, "score": report["score"], "ok": True})
         except Exception as exc:
             results.append({"target": url, "ok": False, "error": str(exc)})
     return jsonify({"pulsed": len(results), "results": results})
+
+
+@app.get("/api/brand-index")
+def api_brand_index():
+    """Brand Visibility Index for one domain, or the list of known brands.
+
+    GET /api/brand-index            -> {"brands": [...]}
+    GET /api/brand-index?domain=... -> full index view for that domain
+    """
+    domain = (request.args.get("domain") or "").strip()
+    if not domain:
+        return jsonify({"brands": brandindex.list_brands()})
+    result = brandindex.brand_index(domain, record=False)
+    if result["index"] is None:
+        return jsonify({"error": f"No scored runs yet for {result['domain']}. "
+                                 "Analyze a page or run a citation check first."}), 404
+    return jsonify(result)
 
 
 if __name__ == "__main__":
