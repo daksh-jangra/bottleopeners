@@ -145,8 +145,23 @@
   .sig-row .top .val{color:var(--muted)}
   .track{height:8px;border-radius:6px;background:var(--track);overflow:hidden}
   .track i{display:block;height:100%;border-radius:6px}
-  .fixes-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 16px}
+  .fixes-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 4px}
   .fixes-head .lift{color:var(--green);font-weight:700;font-size:13px;white-space:nowrap}
+  .fixrow{display:flex;gap:14px;align-items:flex-start;padding:18px 0;border-top:1px solid var(--line)}
+  .fixmain{flex:1;min-width:0}
+  .fixtitle{font-weight:700;font-size:16px;margin:0 0 4px}
+  .fixdesc{color:var(--muted);margin:0;font-size:14px;line-height:1.5}
+  .fixright{text-align:right;flex:none;white-space:nowrap;padding-left:8px}
+  .fixpts{display:block;color:var(--green);font-weight:800}
+  .fixlink{color:var(--muted);font-size:13px;cursor:pointer;text-decoration:none}
+  .fixlink:hover{color:var(--ink)}
+  .sev{font-size:10.5px;font-weight:800;letter-spacing:.04em;border-radius:6px;padding:3px 9px;flex:none;margin-top:2px}
+  .sev.high{background:#fde8e6;color:#c0392b}
+  .sev.med{background:#fbeecd;color:#9a6a00}
+  .sev.low{background:#e8efe9;color:#4a6a55}
+  [data-theme="dark"] .sev.high{background:#3a201e;color:#f0a094}
+  [data-theme="dark"] .sev.med{background:#33280f;color:#e0b969}
+  [data-theme="dark"] .sev.low{background:#1c2822;color:#8fb59f}
   [data-theme="dark"] button.ghost,[data-theme="dark"] .docs-pn{background:#161d1a}
   [data-theme="dark"] h2,[data-theme="dark"] .catname{color:#9aa8a1}
   [data-theme="dark"] .status{color:#c7d2cc}
@@ -690,17 +705,29 @@ function render(r){
 
   const lift = (r.priorities||[]).reduce((s,f)=>s+(f.potential_gain||0), 0);
   $('lift').textContent = lift ? `est. lift if all applied · +${lift} pts` : 'every signal at full marks';
-  $('fixes').innerHTML = (r.priorities||[]).map((f,i)=>`
-    <div class="item">
-      <div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(f.label)}</span><span class="gain">+${f.potential_gain} pts</span></div>
-      <div class="cur">Currently ${f.current_score}/${f.max}</div>
-      ${bar(f.current_score, f.max)}
-      <p class="action">${escapeHtml(f.action)}</p>
-      ${f.specifics && f.specifics.length ? '<ul class="spec">'+f.specifics.map(s=>`<li>${escapeHtml(s)}</li>`).join('')+'</ul>' : ''}
-    </div>`).join('') || '<p>No fixes needed - every factor is at full marks.</p>';
+  $('fixes').innerHTML = (r.priorities||[]).map(f=>{
+    const sev = f.potential_gain>=5 ? ['high','HIGH'] : (f.potential_gain>=2 ? ['med','MED'] : ['low','LOW']);
+    const detail = [f.action, ...(f.specifics||[])].filter(Boolean).map(escapeHtml).join(' ');
+    return `<div class="fixrow">
+      <span class="sev ${sev[0]}">${sev[1]}</span>
+      <div class="fixmain">
+        <div class="fixtitle">${escapeHtml(f.label)}</div>
+        <p class="fixdesc">${detail}</p>
+      </div>
+      <div class="fixright"><span class="fixpts">+${f.potential_gain} pts</span><a class="fixlink" onclick="fixIt()">Fix it →</a></div>
+    </div>`;
+  }).join('') || '<p style="padding-top:16px">No fixes needed - every factor is at full marks.</p>';
 
   if(r.schema){ $('schemaType').textContent = 'Detected type: '+(r.schema.detected_type||''); $('schema').textContent = r.schema.ready_to_paste||''; }
   $('results').classList.remove('hidden');
+}
+
+// "Fix it ->" on a ranked fix: land on Rewrite (the apply-the-fix action) with
+// the URL prefilled. Doesn't auto-run - Rewrite spends API credit.
+function fixIt(){
+  const url = $('url').value.trim();
+  if(url) $('rw-url').value = url;
+  showView('rewrite');
 }
 
 async function rewrite(){
