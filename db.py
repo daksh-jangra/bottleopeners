@@ -39,6 +39,21 @@ def init_db() -> None:
             """
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_runs ON runs (kind, target, created_at)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS alerts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                target TEXT NOT NULL,        -- the page/brand that regressed
+                metric TEXT NOT NULL,        -- which score dropped, e.g. 'analyze'
+                previous_score INTEGER,      -- score before the drop
+                current_score INTEGER,       -- score after the drop
+                delta INTEGER,               -- previous - current (points lost)
+                created_at TEXT NOT NULL,    -- ISO 8601 UTC
+                cleared INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_alerts ON alerts (cleared, created_at)")
 
 
 def now_iso() -> str:
@@ -82,6 +97,38 @@ def runs_by_kind(kind: str, limit: int = 1000) -> list[dict[str, Any]]:
         {"target": r["target"], "score": r["score"], "created_at": r["created_at"]}
         for r in rows
     ]
+
+
+def save_alert(target: str, metric: str, previous_score: int, current_score: int) -> None:
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO alerts (target, metric, previous_score, current_score, delta, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (target, metric, previous_score, current_score, previous_score - current_score, now_iso()),
+        )
+
+
+def recent_alerts(limit: int = 50, include_cleared: bool = False) -> list[dict[str, Any]]:
+    query = "SELECT id, target, metric, previous_score, current_score, delta, created_at, cleared FROM alerts "
+    if not include_cleared:
+        query += "WHERE cleared = 0 "
+    query += "ORDER BY created_at DESC LIMIT ?"
+    with _conn() as conn:
+        rows = conn.execute(query, (limit,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def uncleared_alert_count() -> int:
+    with _conn() as conn:
+        row = conn.execute("SELECT COUNT(*) AS n FROM alerts WHERE cleared = 0").fetchone()
+    return int(row["n"]) if row else 0
+
+
+def clear_alerts() -> int:
+    """Mark all open alerts as cleared; returns how many were cleared."""
+    with _conn() as conn:
+        cur = conn.execute("UPDATE alerts SET cleared = 1 WHERE cleared = 0")
+        return cur.rowcount
 
 
 def tracked_targets(kind: Optional[str] = None) -> list[dict[str, Any]]:
