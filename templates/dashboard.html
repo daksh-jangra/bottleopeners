@@ -152,6 +152,7 @@
       <a class="active" data-view="analyze"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg> Analyze</a>
       <a data-view="batch"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg> Site-wide <span class="tag">New</span></a>
       <a data-view="niche"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg> Niche Explorer <span class="tag">New</span></a>
+      <a data-view="brief"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4M9 9h1"/></svg> Content Brief <span class="tag">New</span></a>
       <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
       <a data-view="teardown"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h6"/><path d="M15 12h6"/><path d="M12 3v18"/><path d="m6 8-3 4 3 4"/><path d="m18 8 3 4-3 4"/></svg> Teardown <span class="tag">New</span></a>
       <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
@@ -369,6 +370,32 @@
           <h2 id="hi-detail-title">Trend</h2>
           <div id="hi-chart"></div>
           <div id="hi-runs"></div>
+        </div>
+      </div>
+
+      <div id="view-brief" class="view hidden">
+        <h1>Content brief</h1>
+        <p class="sub">Paste a target question - the kind Niche Explorer surfaces - and get a brief for a page built to win that citation. It's derived from the same six signals Analyze and Teardown score on, so the brief and the check line up. Free, no AI credit.</p>
+        <div class="searchcard">
+          <input id="br-q" type="text" placeholder="e.g. how to brew pour-over coffee">
+          <button class="primary" id="br-go">Generate brief</button>
+        </div>
+        <div id="br-err" class="err hidden"></div>
+        <div id="br-results" class="hidden">
+          <div class="card">
+            <h2 id="br-title"></h2>
+            <p class="cur" id="br-meta" style="margin-top:0"></p>
+            <p id="br-answer" style="margin:10px 0 0"></p>
+          </div>
+          <div class="card">
+            <h2>Page outline</h2>
+            <div id="br-outline"></div>
+          </div>
+          <div class="card">
+            <h2>Must include - to win the citation</h2>
+            <p class="cur" style="margin-top:0">Each is one of the six signals Analyze &amp; Teardown grade. Cover them and the page scores.</p>
+            <div id="br-must"></div>
+          </div>
         </div>
       </div>
 
@@ -833,8 +860,12 @@ function renderNiche(d){
     : 'No questions suggested.';
   $('ni-list').innerHTML = NICHE_QUESTIONS.map((q,i)=>`
     <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(q)}</span>
-    <button class="ghost ni-add" data-q="${escapeHtml(q)}">+ Add to check</button></div></div>`).join('');
+    <span style="display:flex;gap:8px">
+      <button class="ghost ni-brief" data-q="${escapeHtml(q)}">Brief →</button>
+      <button class="ghost ni-add" data-q="${escapeHtml(q)}">+ Add to check</button>
+    </span></div></div>`).join('');
   document.querySelectorAll('.ni-add').forEach(b=>b.addEventListener('click',()=>addToCheck([b.dataset.q])));
+  document.querySelectorAll('.ni-brief').forEach(b=>b.addEventListener('click',()=>briefFor(b.dataset.q)));
   $('ni-results').classList.remove('hidden');
 }
 function addToCheck(questions){
@@ -1146,6 +1177,41 @@ function renderBatch(d){
 }
 $('ba-go').addEventListener('click', runBatch);
 $('ba-target').addEventListener('keydown', e=>{ if(e.key==='Enter') runBatch(); });
+
+// --- content brief tab ---
+function briefFor(question){        // jump here from a Niche Explorer question
+  showView('brief');
+  $('br-q').value = question;
+  runBrief();
+}
+async function runBrief(){
+  const question = $('br-q').value.trim();
+  if(!question){ tabErr('br-err','Enter a target question.'); return; }
+  setBusy($('br-go'), true, 'Generating…');
+  $('br-err').classList.add('hidden');
+  $('br-results').classList.add('hidden');
+  try{
+    const res = await fetch('/api/brief',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('br-err', data.error||'Couldn’t build a brief.'); return; }
+    renderBrief(data);
+  }catch(e){ tabErr('br-err','Network error: '+e.message); }
+  finally{ setBusy($('br-go'), false, 'Generate brief'); }
+}
+function renderBrief(d){
+  $('br-title').textContent = d.suggested_title;
+  $('br-meta').innerHTML = `<span class="tag">${escapeHtml(d.intent_label)}</span> `
+    + `Schema: <b>${escapeHtml(d.schema_type)}</b> · Target length: <b>~${d.target_word_count} words</b>`;
+  $('br-answer').textContent = d.answer_first;
+  $('br-outline').innerHTML = (d.outline||[]).map((s,i)=>`
+    <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(s)}</span></div></div>`).join('');
+  $('br-must').innerHTML = (d.must_include||[]).map(m=>`
+    <div class="item"><div class="item-h"><span><b>${escapeHtml(m.label)}</b></span></div>
+    <p class="action">${escapeHtml(m.why)}</p></div>`).join('');
+  $('br-results').classList.remove('hidden');
+}
+$('br-go').addEventListener('click', runBrief);
+$('br-q').addEventListener('keydown', e=>{ if(e.key==='Enter') runBrief(); });
 
 // --- documentation tab ---
 const DOCS = [
