@@ -23,8 +23,11 @@
   .ws{display:flex;gap:10px;align-items:center;padding:10px 8px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:14px}
   .ws .ic{width:36px;height:36px;border-radius:9px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
   .ws small{color:var(--muted)}
-  nav a{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:9px;color:var(--ink);text-decoration:none;font-weight:500;margin:2px 0;cursor:pointer}
+  nav a{display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:9px;color:var(--ink);text-decoration:none;font-weight:500;margin:1px 0;cursor:pointer}
   nav a.active{background:#eaf3ee;color:var(--green)}
+  .side nav .grp{margin-top:16px}
+  .side nav .grp:first-of-type{margin-top:2px}
+  .side nav .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;padding:0 12px;margin:0 0 3px;opacity:.8}
   nav a svg{width:19px;height:19px;flex:none;stroke:#9aa3a9}
   nav a:hover svg{stroke:var(--ink)}
   nav a.active svg{stroke:var(--green)}
@@ -149,22 +152,40 @@
     <div class="brand">citepilot</div>
     <div class="ws"><div class="ic">CP</div><div><div style="font-weight:700">Your workspace</div><small>Citation readiness</small></div></div>
     <nav>
-      <a class="active" data-view="analyze"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg> Analyze</a>
-      <a data-view="batch"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg> Site-wide <span class="tag">New</span></a>
-      <a data-view="niche"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg> Niche Explorer <span class="tag">New</span></a>
-      <a data-view="brief"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4M9 9h1"/></svg> Content Brief <span class="tag">New</span></a>
-      <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
-      <a data-view="teardown"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h6"/><path d="M15 12h6"/><path d="M12 3v18"/><path d="m6 8-3 4 3 4"/><path d="m18 8 3 4-3 4"/></svg> Teardown <span class="tag">New</span></a>
-      <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
-      <a data-view="brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 12l4-3"/><circle cx="12" cy="12" r="1.6"/></svg> Brand Index <span class="tag">New</span></a>
-      <a data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> History <span class="tag">New</span></a>
-      <a data-view="monitoring"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg> Monitoring <span class="tag alert-badge hidden" id="nav-alert-badge">0</span></a>
-      <a data-view="rewrite"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Rewrite <span class="tag">Phase 4</span></a>
-      <a data-view="schema"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Schema</a>
-      <a data-view="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg> Report</a>
-      <a data-view="export"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Export <span class="tag">New</span></a>
-      <a data-view="audit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> AEO Audit <span class="tag">New</span></a>
-      <a data-view="docs"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg> Documentation</a>
+      <div class="grp">
+        <div class="lbl">Measure</div>
+        <a class="active" data-view="analyze"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg> Analyze</a>
+        <a data-view="batch"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg> Site-wide <span class="tag">New</span></a>
+        <a data-view="audit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> AEO Audit <span class="tag">New</span></a>
+        <a data-view="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg> Report</a>
+      </div>
+      <div class="grp">
+        <div class="lbl">Plan</div>
+        <a data-view="niche"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg> Niche Explorer <span class="tag">New</span></a>
+        <a data-view="brief"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4M9 9h1"/></svg> Content Brief <span class="tag">New</span></a>
+        <a data-view="prompts"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/><path d="M18 15l3 3-3 3" opacity="0"/><circle cx="20" cy="18" r="2"/></svg> Prompt Hub <span class="tag">New</span></a>
+      </div>
+      <div class="grp">
+        <div class="lbl">Compete</div>
+        <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
+        <a data-view="teardown"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h6"/><path d="M15 12h6"/><path d="M12 3v18"/><path d="m6 8-3 4 3 4"/><path d="m18 8 3 4-3 4"/></svg> Teardown <span class="tag">New</span></a>
+        <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
+        <a data-view="brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 12l4-3"/><circle cx="12" cy="12" r="1.6"/></svg> Brand Index <span class="tag">New</span></a>
+      </div>
+      <div class="grp">
+        <div class="lbl">Improve &amp; ship</div>
+        <a data-view="rewrite"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Rewrite <span class="tag">Phase 4</span></a>
+        <a data-view="schema"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Schema</a>
+        <a data-view="export"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Export <span class="tag">New</span></a>
+      </div>
+      <div class="grp">
+        <div class="lbl">Track</div>
+        <a data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> History <span class="tag">New</span></a>
+        <a data-view="monitoring"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg> Monitoring <span class="tag alert-badge hidden" id="nav-alert-badge">0</span></a>
+      </div>
+      <div class="grp">
+        <a data-view="docs"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg> Documentation</a>
+      </div>
     </nav>
     <div class="themerow" id="themeToggle" role="button" tabindex="0" aria-label="Toggle dark mode">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -254,6 +275,7 @@
         <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
           <input id="c-target" type="text" placeholder="your domain, e.g. yoursite.com">
           <textarea id="c-queries" rows="4" placeholder="One question per line, e.g.&#10;how do I descale a coffee maker&#10;best way to remove limescale from a kettle" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
+          <div style="display:flex;gap:8px"><button class="ghost" id="c-load-hub">Load from Hub</button><button class="ghost" id="c-save-hub">Save these to Hub</button></div>
           <div><button class="primary" id="c-go">Run citation check</button>
           <span class="cur" style="margin-left:10px">Live web searches - a few queries can take a couple of minutes. Up to 10 questions run per check.</span></div>
           <div class="cur hidden" id="c-cap-note" style="color:#b45309"></div>
@@ -309,6 +331,7 @@
         <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
           <input id="se-brand" type="text" placeholder="your brand name, e.g. KitchenAid">
           <textarea id="se-queries" rows="4" placeholder="One question per line, e.g.&#10;what is the best coffee machine descaler&#10;how do I remove limescale from a coffee maker" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
+          <div style="display:flex;gap:8px"><button class="ghost" id="se-load-hub">Load from Hub</button><button class="ghost" id="se-save-hub">Save these to Hub</button></div>
           <div><button class="primary" id="se-go">Run sentiment check</button>
           <span class="cur" style="margin-left:10px">Two AI calls per question (answer + classify) - a few questions take a couple of minutes. Up to 10 questions run per check.</span></div>
         </div>
@@ -370,6 +393,26 @@
           <h2 id="hi-detail-title">Trend</h2>
           <div id="hi-chart"></div>
           <div id="hi-runs"></div>
+        </div>
+      </div>
+
+      <div id="view-prompts" class="view hidden">
+        <h1>Prompt Hub</h1>
+        <p class="sub">A saved, reusable library of the questions you track - so you stop retyping them. Add prompts here or save them from Niche Explorer, then load the set straight into a Competitors or Sentiment check.</p>
+        <div class="searchcard">
+          <input id="pr-new" type="text" placeholder="Add a question, e.g. best way to remove limescale from a kettle">
+          <button class="primary" id="pr-add">Save prompt</button>
+        </div>
+        <div id="pr-err" class="err hidden"></div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h2 style="margin:0">Saved prompts <span class="tag" id="pr-count">0</span></h2>
+            <span style="display:flex;gap:8px">
+              <button class="ghost" id="pr-use-c">Load all → Competitors</button>
+              <button class="ghost" id="pr-use-s">Load all → Sentiment</button>
+            </span>
+          </div>
+          <div id="pr-list" style="margin-top:12px"><p class="cur">No saved prompts yet. Add one above, or save questions from Niche Explorer.</p></div>
         </div>
       </div>
 
@@ -642,6 +685,7 @@ document.querySelectorAll('nav a[data-view]').forEach(a=>a.addEventListener('cli
   if(a.dataset.view==='history') loadTracked();
   if(a.dataset.view==='brand') loadBrands();
   if(a.dataset.view==='monitoring') loadAlerts();
+  if(a.dataset.view==='prompts') loadPrompts();
 }));
 
 // --- rewrite tab ---
@@ -873,18 +917,24 @@ function renderNiche(d){
     <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(q)}</span>
     <span style="display:flex;gap:8px">
       <button class="ghost ni-brief" data-q="${escapeHtml(q)}">Brief →</button>
+      <button class="ghost ni-hub" data-q="${escapeHtml(q)}">＋ Hub</button>
       <button class="ghost ni-add" data-q="${escapeHtml(q)}">+ Add to check</button>
     </span></div></div>`).join('');
   document.querySelectorAll('.ni-add').forEach(b=>b.addEventListener('click',()=>addToCheck([b.dataset.q])));
   document.querySelectorAll('.ni-brief').forEach(b=>b.addEventListener('click',()=>briefFor(b.dataset.q)));
+  document.querySelectorAll('.ni-hub').forEach(b=>b.addEventListener('click',()=>saveToHub([b.dataset.q], b)));
   $('ni-results').classList.remove('hidden');
+}
+// Merge questions into a query textarea, de-duplicated, order-preserving.
+function fillQueriesInto(id, questions){
+  const existing = $(id).value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const seen = new Set(existing.map(s=>s.toLowerCase()));
+  questions.forEach(q=>{ q=(q||'').trim(); if(q && !seen.has(q.toLowerCase())){ existing.push(q); seen.add(q.toLowerCase()); } });
+  $(id).value = existing.join('\n');
 }
 function addToCheck(questions){
   if($('ni-brand').value.trim() && !$('c-target').value.trim()) $('c-target').value = $('ni-brand').value.trim();
-  const existing = $('c-queries').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  const seen = new Set(existing.map(s=>s.toLowerCase()));
-  questions.forEach(q=>{ if(!seen.has(q.toLowerCase())){ existing.push(q); seen.add(q.toLowerCase()); } });
-  $('c-queries').value = existing.join('\n');
+  fillQueriesInto('c-queries', questions);
   updateCapNote();
   showView('competitors');
 }
@@ -1223,6 +1273,76 @@ function renderBrief(d){
 }
 $('br-go').addEventListener('click', runBrief);
 $('br-q').addEventListener('keydown', e=>{ if(e.key==='Enter') runBrief(); });
+
+// --- prompt hub tab ---
+let PROMPTS = [];
+function flashBtn(btn, msg){ if(!btn) return; const t=btn.dataset.label||btn.textContent; btn.dataset.label=t; btn.textContent=msg; btn.disabled=true; setTimeout(()=>{ btn.textContent=t; btn.disabled=false; }, 1400); }
+async function postPrompts(body){
+  try{
+    const res = await fetch('/api/prompts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return await res.json();
+  }catch(e){ tabErr('pr-err','Network error: '+e.message); return null; }
+}
+async function loadPrompts(){
+  $('pr-err').classList.add('hidden');
+  try{ renderPrompts(((await (await fetch('/api/prompts')).json()).prompts)||[]); }
+  catch(e){ tabErr('pr-err','Network error: '+e.message); }
+}
+function renderPrompts(prompts){
+  PROMPTS = prompts;
+  $('pr-count').textContent = prompts.length;
+  if(!prompts.length){ $('pr-list').innerHTML='<p class="cur">No saved prompts yet. Add one above, or save questions from Niche Explorer.</p>'; return; }
+  $('pr-list').innerHTML = prompts.map(p=>`
+    <div class="item"><div class="item-h">
+      <span>${escapeHtml(p.text)}</span>
+      <span style="display:flex;gap:8px">
+        <button class="ghost pr-c" data-id="${p.id}">→ Competitors</button>
+        <button class="ghost pr-s" data-id="${p.id}">→ Sentiment</button>
+        <button class="ghost pr-del" data-id="${p.id}">✕</button>
+      </span></div></div>`).join('');
+  const textById = id => (PROMPTS.find(p=>String(p.id)===String(id))||{}).text;
+  document.querySelectorAll('.pr-c').forEach(b=>b.addEventListener('click',()=>{ fillQueriesInto('c-queries',[textById(b.dataset.id)]); updateCapNote(); showView('competitors'); }));
+  document.querySelectorAll('.pr-s').forEach(b=>b.addEventListener('click',()=>{ fillQueriesInto('se-queries',[textById(b.dataset.id)]); showView('sentiment'); }));
+  document.querySelectorAll('.pr-del').forEach(b=>b.addEventListener('click',()=>deletePrompt(b.dataset.id)));
+}
+async function addPromptFromInput(){
+  const text = $('pr-new').value.trim();
+  if(!text){ tabErr('pr-err','Enter a question to save.'); return; }
+  $('pr-err').classList.add('hidden');
+  const d = await postPrompts({text});
+  if(d){ $('pr-new').value=''; renderPrompts(d.prompts||[]); }
+}
+async function deletePrompt(id){
+  try{
+    const res = await fetch('/api/prompts/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(id)})});
+    renderPrompts(((await res.json()).prompts)||[]);
+  }catch(e){ tabErr('pr-err','Network error: '+e.message); }
+}
+// Save questions to the hub from anywhere (Niche question, a check textarea).
+async function saveToHub(questions, btn){
+  const texts = questions.map(q=>(q||'').trim()).filter(Boolean);
+  if(!texts.length){ flashBtn(btn,'Nothing to save'); return; }
+  const d = await postPrompts({texts});
+  if(d){ flashBtn(btn, d.added ? `Saved ${d.added}` : 'Already saved'); if(!$('view-prompts').classList.contains('hidden')) renderPrompts(d.prompts||[]); }
+}
+// Load the whole hub into a check textarea; fetches fresh so it works from any tab.
+function loadHubInto(id, btn){
+  fetch('/api/prompts').then(r=>r.json()).then(d=>{
+    const texts=(d.prompts||[]).map(p=>p.text);
+    if(!texts.length){ flashBtn(btn,'Hub is empty'); return; }
+    fillQueriesInto(id, texts);
+    if(id==='c-queries') updateCapNote();
+    flashBtn(btn, `Loaded ${texts.length}`);
+  });
+}
+$('pr-add').addEventListener('click', addPromptFromInput);
+$('pr-new').addEventListener('keydown', e=>{ if(e.key==='Enter') addPromptFromInput(); });
+$('pr-use-c').addEventListener('click', ()=>{ if(!PROMPTS.length){ flashBtn($('pr-use-c'),'Hub is empty'); return; } fillQueriesInto('c-queries', PROMPTS.map(p=>p.text)); updateCapNote(); showView('competitors'); });
+$('pr-use-s').addEventListener('click', ()=>{ if(!PROMPTS.length){ flashBtn($('pr-use-s'),'Hub is empty'); return; } fillQueriesInto('se-queries', PROMPTS.map(p=>p.text)); showView('sentiment'); });
+$('c-load-hub').addEventListener('click', e=>loadHubInto('c-queries', e.target));
+$('c-save-hub').addEventListener('click', e=>saveToHub($('c-queries').value.split('\n'), e.target));
+$('se-load-hub').addEventListener('click', e=>loadHubInto('se-queries', e.target));
+$('se-save-hub').addEventListener('click', e=>saveToHub($('se-queries').value.split('\n'), e.target));
 
 // --- documentation tab ---
 const DOCS = [

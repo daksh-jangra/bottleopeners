@@ -370,6 +370,35 @@ def api_niche():
         return _server_error(exc)
 
 
+@app.get("/api/prompts")
+def api_prompts_list():
+    """The saved prompt library - a reusable question set for the check tabs."""
+    return jsonify({"prompts": db.list_prompts()})
+
+
+@app.post("/api/prompts")
+def api_prompts_add():
+    """Save one (`text`) or many (`texts`) questions to the library; dedupes."""
+    data = request.json or {}
+    texts = data.get("texts")
+    if texts is None:
+        texts = [data.get("text", "")]
+    if not isinstance(texts, list):
+        return jsonify({"error": "Provide a question or a list of questions."}), 400
+    added = db.save_prompts([str(t) for t in texts])
+    return jsonify({"added": added, "prompts": db.list_prompts()})
+
+
+@app.post("/api/prompts/delete")
+def api_prompts_delete():
+    """Remove a saved prompt by id; returns the refreshed library."""
+    prompt_id = (request.json or {}).get("id")
+    if prompt_id is None:
+        return jsonify({"error": "Missing prompt id."}), 400
+    deleted = db.delete_prompt(int(prompt_id))
+    return jsonify({"deleted": deleted, "prompts": db.list_prompts()})
+
+
 @app.post("/api/brief")
 def api_brief():
     """Turn a target question into a rule-based content brief (free, no AI credit)."""

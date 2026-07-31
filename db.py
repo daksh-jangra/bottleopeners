@@ -54,6 +54,15 @@ def init_db() -> None:
             """
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_alerts ON alerts (cleared, created_at)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS prompts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL UNIQUE,    -- the saved question; UNIQUE dedupes the library
+                created_at TEXT NOT NULL      -- ISO 8601 UTC
+            )
+            """
+        )
 
 
 def now_iso() -> str:
@@ -128,6 +137,57 @@ def clear_alerts() -> int:
     """Mark all open alerts as cleared; returns how many were cleared."""
     with _conn() as conn:
         cur = conn.execute("UPDATE alerts SET cleared = 1 WHERE cleared = 0")
+        return cur.rowcount
+
+
+def save_prompts(texts: list[str]) -> int:
+    """Add one or more questions to the reusable prompt library; return how many
+    were newly saved.
+
+    Blank entries are dropped and duplicates are ignored (the text column is
+    UNIQUE), so callers can pass raw textarea lines without pre-cleaning.
+    """
+    cleaned = []
+    seen: set[str] = set()
+    for text in texts:
+        text = (text or "").strip()
+        key = text.lower()
+        if text and key not in seen:
+            seen.add(key)
+            cleaned.append(text)
+    if not cleaned:
+        return 0
+    added = 0
+    with _conn() as conn:
+        # Case-insensitive dedupe against what's already saved - done here rather
+        # than via the column collation so it holds regardless of the schema.
+        existing = {r["text"].lower() for r in conn.execute("SELECT text FROM prompts").fetchall()}
+        for text in cleaned:
+            if text.lower() in existing:
+                continue
+            conn.execute(
+                "INSERT OR IGNORE INTO prompts (text, created_at) VALUES (?, ?)",
+                (text, now_iso()),
+            )
+            existing.add(text.lower())
+            added += 1
+    return added
+
+
+def list_prompts(limit: int = 500) -> list[dict[str, Any]]:
+    """The saved prompt library, newest first."""
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT id, text, created_at FROM prompts ORDER BY created_at DESC, id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_prompt(prompt_id: int) -> int:
+    """Remove one saved prompt by id; return how many rows were deleted (0 or 1)."""
+    with _conn() as conn:
+        cur = conn.execute("DELETE FROM prompts WHERE id = ?", (prompt_id,))
         return cur.rowcount
 
 
