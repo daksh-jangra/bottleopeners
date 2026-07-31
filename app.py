@@ -24,6 +24,7 @@ from flask import Flask, jsonify, render_template, request
 import analyzer
 import audit
 import brandindex
+import brief
 import db
 import export
 import generator
@@ -347,6 +348,20 @@ def api_niche():
             return jsonify({"error": "Could not generate questions; try adding keywords or an industry."}), 400
         return jsonify({"brand": brand, "questions": questions})
     except harness.HarnessError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return _server_error(exc)
+
+
+@app.post("/api/brief")
+def api_brief():
+    """Turn a target question into a rule-based content brief (free, no AI credit)."""
+    question = (request.json or {}).get("question", "").strip()
+    if not question:
+        return jsonify({"error": "Enter a target question."}), 400
+    try:
+        return jsonify(brief.build_brief(question))
+    except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return _server_error(exc)
