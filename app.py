@@ -33,6 +33,7 @@ import monitor
 import notify
 import rewriter
 import rubric
+import sitemap
 import teardown
 from common import CLASSIFIER_MODEL, DEFAULT_MODEL, load_dotenv, slugify
 
@@ -42,6 +43,13 @@ db.init_db()
 # Max questions accepted per Competitors/Sentiment run, to bound cost and time
 # (each question is a live web-search + model call). Also surfaced in the UI.
 MAX_QUERIES_PER_RUN = 10
+
+# Max pages analyzed in one site-wide batch run, and how many nested sitemaps a
+# sitemap index is followed into. Bounds a large site to a predictable amount of
+# work (analysis is free/rule-based, but each page is still a fetch). Surfaced
+# in the UI so the cap is never a surprise.
+MAX_BATCH_URLS = 25
+MAX_NESTED_SITEMAPS = 5
 
 # Opt-in background scheduler: when CITEPILOT_PULSE_MINUTES is set to a positive
 # integer, a daemon thread runs a pulse on that cadence so regressions are
@@ -88,33 +96,132 @@ def index():
     return render_template("dashboard.html")
 
 
+def _analyze_url(url: str) -> dict[str, Any]:
+    """Fetch, score, and store one analyze run; return the report.
+
+    Shared by the single-page endpoint and the site-wide batch. Deliberately
+    does not snapshot the brand index - callers decide when (once per domain for
+    a batch, rather than once per page).
+    """
+    payload = _fetch_payload(url)
+    analysis = analyzer.build_analysis(payload)
+    schema = _schema_for(payload)
+    report = rubric.build_report(analysis, schema, None)
+    report["page"] = {
+        "title": payload.get("title"),
+        "word_count": payload.get("word_count"),
+        "headers": len(payload.get("headers", [])),
+        "lists": payload.get("list_count"),
+        "tables": payload.get("table_count"),
+    }
+    db.save_run("analyze", url, report["score"], {
+        "grade": report["grade"],
+        "title": payload.get("title"),
+    })
+    return report
+
+
 @app.post("/api/analyze")
 def api_analyze():
     url = (request.json or {}).get("url", "").strip()
     if not url:
         return jsonify({"error": "Enter a page URL."}), 400
     try:
-        payload = _fetch_payload(url)
-        analysis = analyzer.build_analysis(payload)
-        schema = _schema_for(payload)
-        report = rubric.build_report(analysis, schema, None)
-        report["page"] = {
-            "title": payload.get("title"),
-            "word_count": payload.get("word_count"),
-            "headers": len(payload.get("headers", [])),
-            "lists": payload.get("list_count"),
-            "tables": payload.get("table_count"),
-        }
-        db.save_run("analyze", url, report["score"], {
-            "grade": report["grade"],
-            "title": payload.get("title"),
-        })
+        report = _analyze_url(url)
         _snapshot_bvi(url)
         return jsonify(report)
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:  # keep the UI honest about failures
         return _server_error(exc)
+
+
+def _discover_urls(target: str) -> list[str]:
+    """Find a site's page URLs from its sitemap.
+
+    Prefers the sitemaps declared in robots.txt, falling back to the
+    conventional /sitemap.xml locations. A sitemap index is followed one level
+    (up to MAX_NESTED_SITEMAPS children). All fetches go through ingest's
+    SSRF-guarded fetcher; an unreachable or malformed sitemap is skipped, not
+    fatal. Returns de-duplicated page URLs in document order.
+    """
+    origin = sitemap.origin_of(target)
+    candidates: list[str] = []
+    if origin:
+        try:
+            robots = ingest.fetch_url(origin + "/robots.txt")
+            candidates = sitemap.sitemaps_from_robots(robots)
+        except ingest.IngestError:
+            candidates = []
+    candidates = candidates or sitemap.candidate_sitemap_urls(target)
+
+    seen: set[str] = set()
+    urls: list[str] = []
+    for sm_url in candidates:
+        try:
+            parsed = sitemap.parse_sitemap(ingest.fetch_url(sm_url))
+        except ingest.IngestError:
+            continue
+        page_urls = list(parsed["urls"])
+        for nested in parsed["sitemaps"][:MAX_NESTED_SITEMAPS]:
+            try:
+                page_urls.extend(sitemap.parse_sitemap(ingest.fetch_url(nested))["urls"])
+            except ingest.IngestError:
+                continue
+        for url in page_urls:
+            if url not in seen:
+                seen.add(url)
+                urls.append(url)
+        if urls:
+            break  # first sitemap that yields pages wins
+    return urls
+
+
+@app.post("/api/batch")
+def api_batch():
+    """Analyze a whole site: discover its sitemap, score every page, track them.
+
+    Each page is stored as an analyze run, so the site's pages immediately show
+    up under History and are re-checked by the Monitoring pulse - regression
+    watch over a whole site instead of hand-added URLs.
+    """
+    target = (request.json or {}).get("target", "").strip()
+    if not target:
+        return jsonify({"error": "Enter your site's domain or a sitemap URL."}), 400
+    try:
+        discovered = _discover_urls(target)
+    except Exception as exc:
+        return _server_error(exc)
+    if not discovered:
+        return jsonify({"error": "Couldn't find a sitemap for that site. "
+                                 "Try the full sitemap.xml URL."}), 404
+
+    capped = discovered[:MAX_BATCH_URLS]
+    results = []
+    domains: set[str] = set()
+    for url in capped:
+        try:
+            report = _analyze_url(url)
+            results.append({"target": url, "score": report["score"], "grade": report["grade"], "ok": True})
+            domains.add(harness.normalize_domain(url))
+        except ingest.IngestError as exc:
+            results.append({"target": url, "ok": False, "error": str(exc)})
+        except Exception:  # one bad page shouldn't sink the whole batch
+            app.logger.exception("Batch analyze failed for %s", url)
+            results.append({"target": url, "ok": False, "error": "Could not analyze this page."})
+
+    for domain in domains:  # one brand-index snapshot per site, not per page
+        _snapshot_bvi(domain)
+
+    analyzed = sum(1 for r in results if r["ok"])
+    return jsonify({
+        "target": target,
+        "found": len(discovered),
+        "analyzed": analyzed,
+        "capped": len(discovered) > MAX_BATCH_URLS,
+        "cap": MAX_BATCH_URLS,
+        "results": results,
+    })
 
 
 @app.post("/api/rewrite")
