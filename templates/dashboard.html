@@ -442,7 +442,14 @@
         </div>
         <p class="cur" style="margin-top:-10px">Uses Claude - takes ~30-60s and consumes API credit.</p>
         <div id="rw-err" class="err hidden"></div>
-        <div id="rw-results" class="hidden"><div id="rw-proof" class="proof"></div></div>
+        <div id="rw-results" class="hidden">
+          <div id="rw-proof" class="proof"></div>
+          <div class="card">
+            <h2>Ship the fix</h2>
+            <p class="cur" style="margin-top:0">Download the optimized content as a clean, standalone HTML page - answer-first, structured, with schema baked in and ready to publish.</p>
+            <button class="primary" id="rw-dl">⬇ Download optimized page</button>
+          </div>
+        </div>
       </div>
 
       <div id="view-schema" class="view hidden">
@@ -649,10 +656,14 @@ async function runRewriteTab(){
     if(!res.ok){ tabErr('rw-err', data.error||'Rewrite failed.'); return; }
     $('rw-proof').innerHTML = `<b>Proof it works.</b> After Claude's rewrite, this page's score moves from <b>${data.before}</b> to <span class="up">${data.after}</span> (+${data.gain} pts).`
       + (data.changes && data.changes.length ? '<ul class="spec">'+data.changes.map(c=>`<li>${escapeHtml(c)}</li>`).join('')+'</ul>' : '');
+    REWRITE_PAGE = data.page_html ? {html:data.page_html, filename:data.filename||'optimized-page.html'} : null;
+    $('rw-dl').disabled = !REWRITE_PAGE;
     $('rw-results').classList.remove('hidden');
   }catch(e){ tabErr('rw-err','Network error: '+e.message); }
   finally{ setBusy($('rw-go'), false, 'Rewrite & prove lift'); }
 }
+let REWRITE_PAGE = null;
+$('rw-dl').addEventListener('click', ()=>{ if(REWRITE_PAGE) downloadFile(REWRITE_PAGE.filename, REWRITE_PAGE.html, 'text/html'); });
 
 // --- schema tab ---
 async function runSchema(){
