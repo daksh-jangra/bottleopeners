@@ -150,6 +150,7 @@
     <div class="ws"><div class="ic">CP</div><div><div style="font-weight:700">Your workspace</div><small>Citation readiness</small></div></div>
     <nav>
       <a class="active" data-view="analyze"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg> Analyze</a>
+      <a data-view="batch"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg> Site-wide <span class="tag">New</span></a>
       <a data-view="niche"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg> Niche Explorer <span class="tag">New</span></a>
       <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
       <a data-view="teardown"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h6"/><path d="M15 12h6"/><path d="M12 3v18"/><path d="m6 8-3 4 3 4"/><path d="m18 8 3 4-3 4"/></svg> Teardown <span class="tag">New</span></a>
@@ -368,6 +369,24 @@
           <h2 id="hi-detail-title">Trend</h2>
           <div id="hi-chart"></div>
           <div id="hi-runs"></div>
+        </div>
+      </div>
+
+      <div id="view-batch" class="view hidden">
+        <h1>Site-wide analyze</h1>
+        <p class="sub">Point CitePilot at your site's domain or sitemap and it scores every page in one pass - no hand-adding URLs. Each page is saved and tracked, so the Monitoring pulse then watches your whole site for regressions.</p>
+        <div class="searchcard">
+          <input id="ba-target" type="text" placeholder="example.com  or  https://example.com/sitemap.xml">
+          <button class="primary" id="ba-go">Analyze site</button>
+        </div>
+        <p class="cur" style="margin-top:-10px">Free - analysis is rule-based, no AI credit. Up to <b id="ba-cap">25</b> pages per run.</p>
+        <div id="ba-err" class="err hidden"></div>
+        <div id="ba-results" class="hidden">
+          <div class="card">
+            <h2 id="ba-sum"></h2>
+            <p class="cur" id="ba-sum-note" style="margin-top:0"></p>
+            <div id="ba-list"></div>
+          </div>
         </div>
       </div>
 
@@ -1091,6 +1110,42 @@ async function clearAlerts(){
 $('mo-pulse').addEventListener('click', runMonitorPulse);
 $('mo-clear').addEventListener('click', clearAlerts);
 refreshAlertBadge();
+
+// --- site-wide (batch) tab ---
+async function runBatch(){
+  const target = $('ba-target').value.trim();
+  if(!target){ tabErr('ba-err','Enter your site domain or a sitemap URL.'); return; }
+  setBusy($('ba-go'), true, 'Analyzing…');
+  $('ba-err').classList.add('hidden');
+  $('ba-results').classList.add('hidden');
+  try{
+    const res = await fetch('/api/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('ba-err', data.error||'Site-wide analyze failed.'); return; }
+    renderBatch(data);
+    refreshAlertBadge();
+  }catch(e){ tabErr('ba-err','Network error: '+e.message); }
+  finally{ setBusy($('ba-go'), false, 'Analyze site'); }
+}
+function renderBatch(d){
+  const ok = (d.results||[]).filter(r=>r.ok).sort((a,b)=>a.score-b.score);  // worst first - most to fix
+  const failed = (d.results||[]).filter(r=>!r.ok);
+  $('ba-sum').textContent = `Analyzed ${d.analyzed} of ${d.found} page${d.found===1?'':'s'}`;
+  $('ba-sum-note').textContent = (d.capped ? `Site has more than ${d.cap} pages - analyzed the first ${d.cap}. ` : '')
+    + 'These pages are now tracked - open Monitoring to pulse them for regressions.';
+  const rows = ok.map(r=>`
+    <div class="item"><div class="item-h">
+      <span>${escapeHtml(r.target)}</span>
+      <span><b>${r.score}</b><small>/100</small> <span class="tag">${escapeHtml(r.grade)}</span></span></div></div>`).join('');
+  const fails = failed.map(r=>`
+    <div class="item"><div class="item-h">
+      <span>${escapeHtml(r.target)}</span><span class="cur">skipped</span></div>
+      <div class="cur">${escapeHtml(r.error||'')}</div></div>`).join('');
+  $('ba-list').innerHTML = (rows + fails) || '<p class="cur">No pages analyzed.</p>';
+  $('ba-results').classList.remove('hidden');
+}
+$('ba-go').addEventListener('click', runBatch);
+$('ba-target').addEventListener('keydown', e=>{ if(e.key==='Enter') runBatch(); });
 
 // --- documentation tab ---
 const DOCS = [
