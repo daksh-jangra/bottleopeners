@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import json
 import os
+import threading
+import time
 from typing import Any
 
 from flask import Flask, jsonify, render_template, request
@@ -27,6 +29,8 @@ import export
 import generator
 import harness
 import ingest
+import monitor
+import notify
 import rewriter
 import rubric
 import teardown
@@ -38,6 +42,11 @@ db.init_db()
 # Max questions accepted per Competitors/Sentiment run, to bound cost and time
 # (each question is a live web-search + model call). Also surfaced in the UI.
 MAX_QUERIES_PER_RUN = 10
+
+# Opt-in background scheduler: when CITEPILOT_PULSE_MINUTES is set to a positive
+# integer, a daemon thread runs a pulse on that cadence so regressions are
+# caught without anyone clicking a button. Unset/0 keeps CitePilot fully manual.
+_scheduler_state: dict[str, Any] = {"enabled": False, "minutes": 0, "last_run": None}
 
 
 def _server_error(exc: Exception):
@@ -369,22 +378,67 @@ def api_history():
     return jsonify({"target": target, "kind": kind, "runs": db.history(kind, target)})
 
 
-@app.post("/api/pulse")
-def api_pulse():
-    """Re-check every tracked page now and snapshot a fresh score (a manual 'pulse')."""
-    targets = [t["target"] for t in db.tracked_targets("analyze")]
+def _run_pulse() -> dict[str, Any]:
+    """Re-check every tracked page, snapshot a fresh score, and raise an alert
+    when a page's score regresses.
+
+    Shared core behind the manual /api/pulse endpoint and the opt-in background
+    scheduler, so both behave identically. Reads each target's previous score
+    (before this run) so a drop can be measured, then delegates the "is this a
+    regression?" decision to monitor.detect_regression.
+    """
+    targets = db.tracked_targets("analyze")
     results = []
-    for url in targets:
+    alerts_fired = 0
+    for t in targets:
+        url = t["target"]
+        previous_score = t["latest_score"]  # latest score before this pulse
         try:
             payload = _fetch_payload(url)
             analysis = analyzer.build_analysis(payload)
             report = rubric.build_report(analysis, _schema_for(payload), None)
-            db.save_run("analyze", url, report["score"], {"grade": report["grade"], "title": payload.get("title")})
+            score = report["score"]
+            db.save_run("analyze", url, score, {"grade": report["grade"], "title": payload.get("title")})
             _snapshot_bvi(url)
-            results.append({"target": url, "score": report["score"], "ok": True})
+            regression = monitor.detect_regression(previous_score, score)
+            if regression:
+                db.save_alert(url, "analyze", previous_score, score)
+                alerts_fired += 1
+                # Best-effort fan-out to Slack/email; notify() never raises.
+                notify.notify(url, "analyze", previous_score, score, regression["delta"])
+            results.append({
+                "target": url,
+                "score": score,
+                "previous_score": previous_score,
+                "regressed": bool(regression),
+                "ok": True,
+            })
         except Exception as exc:
             results.append({"target": url, "ok": False, "error": str(exc)})
-    return jsonify({"pulsed": len(results), "results": results})
+    return {"pulsed": len(results), "alerts_fired": alerts_fired, "results": results}
+
+
+@app.post("/api/pulse")
+def api_pulse():
+    """Re-check every tracked page now and snapshot a fresh score (a manual 'pulse')."""
+    return jsonify(_run_pulse())
+
+
+@app.get("/api/alerts")
+def api_alerts():
+    """Open regression alerts, the unread count, and scheduler status for the UI."""
+    return jsonify({
+        "alerts": db.recent_alerts(),
+        "count": db.uncleared_alert_count(),
+        "scheduler": dict(_scheduler_state),
+        "notify": notify.configured_channels(),
+    })
+
+
+@app.post("/api/alerts/clear")
+def api_alerts_clear():
+    """Mark every open alert as read; returns how many were cleared."""
+    return jsonify({"cleared": db.clear_alerts()})
 
 
 @app.get("/api/brand-index")
@@ -404,6 +458,44 @@ def api_brand_index():
     return jsonify(result)
 
 
+def _scheduler_loop(interval_seconds: int) -> None:
+    """Run a pulse every `interval_seconds` until the process exits.
+
+    Runs in a daemon thread so it never blocks shutdown. Each pulse is wrapped
+    so a transient failure (a page down, a network blip) logs and the loop keeps
+    going rather than dying silently.
+    """
+    while True:
+        time.sleep(interval_seconds)
+        try:
+            summary = _run_pulse()
+            _scheduler_state["last_run"] = db.now_iso()
+            app.logger.info(
+                "Scheduled pulse: %d page(s), %d alert(s) fired",
+                summary["pulsed"], summary["alerts_fired"],
+            )
+        except Exception:  # noqa: BLE001 - a bad pulse must not kill the loop
+            app.logger.exception("Scheduled pulse failed")
+
+
+def _start_scheduler() -> None:
+    """Start the background pulse scheduler if CITEPILOT_PULSE_MINUTES opts in."""
+    raw = os.environ.get("CITEPILOT_PULSE_MINUTES", "").strip()
+    try:
+        minutes = int(raw)
+    except ValueError:
+        minutes = 0
+    if minutes <= 0:
+        return
+    _scheduler_state.update(enabled=True, minutes=minutes)
+    thread = threading.Thread(
+        target=_scheduler_loop, args=(minutes * 60,), name="citepilot-pulse", daemon=True,
+    )
+    thread.start()
+    app.logger.info("Background pulse scheduler on: every %d minute(s)", minutes)
+
+
 if __name__ == "__main__":
     load_dotenv()
+    _start_scheduler()
     app.run(host="127.0.0.1", port=8760, debug=False)
