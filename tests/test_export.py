@@ -67,3 +67,86 @@ def test_strip_existing_counts_multiple_blocks():
     cleaned, count = export.strip_existing_ldjson(html)
     assert count == 2
     assert "ld+json" not in cleaned
+
+
+# --- build_standalone_page: the "ship the fix" export ------------------------
+
+def _page(**kw):
+    base = dict(title="Pour-Over Coffee", body_text="First para.\n\nSecond para.")
+    base.update(kw)
+    return export.build_standalone_page(**base)
+
+
+def test_page_is_a_full_html_document():
+    page = _page()
+    assert page.startswith("<!DOCTYPE html>")
+    assert "<html lang=\"en\">" in page
+    assert page.rstrip().endswith("</html>")
+    assert "<h1>Pour-Over Coffee</h1>" in page
+
+
+def test_body_text_becomes_paragraphs():
+    page = _page(body_text="Alpha line.\n\nBeta line.\n\nGamma line.")
+    assert page.count("<p>") >= 3
+    assert "<p>Alpha line.</p>" in page
+    assert "<p>Beta line.</p>" in page
+
+
+def test_answer_summary_is_the_lead():
+    page = _page(answer_summary="The direct answer up front.")
+    assert '<p class="lead">The direct answer up front.</p>' in page
+
+
+def test_key_facts_render_as_a_list():
+    page = _page(key_facts=["96C water", "1:16 ratio"])
+    assert "<h2>Key facts</h2>" in page
+    assert "<li>96C water</li>" in page
+    assert "<li>1:16 ratio</li>" in page
+
+
+def test_faq_renders_questions_and_answers():
+    page = _page(faq=[{"question": "How hot?", "answer": "About 96C."}])
+    assert "<h2>Frequently asked questions</h2>" in page
+    assert "<h3>How hot?</h3>" in page
+    assert "<p>About 96C.</p>" in page
+
+
+def test_dates_render_when_present_and_dedupe():
+    page = _page(published_date="2026-01-01", updated_date="2026-03-01")
+    assert "Published 2026-01-01" in page
+    assert "Updated 2026-03-01" in page
+    same = _page(published_date="2026-01-01", updated_date="2026-01-01")
+    assert same.count("2026-01-01") == 1   # not shown twice when identical
+
+
+def test_all_content_is_html_escaped():
+    page = export.build_standalone_page(
+        title="<script>alert(1)</script>",
+        body_text="Body with <img src=x onerror=alert(2)> tag",
+        answer_summary="<b>bold</b> lead",
+        key_facts=["<i>fact</i>"],
+        faq=[{"question": "<u>q</u>", "answer": "<em>a</em>"}],
+    )
+    # no raw injected tags survive from model content
+    assert "<script>alert(1)</script>" not in page
+    assert "<img src=x" not in page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
+    assert "&lt;img src=x" in page
+    assert "&lt;b&gt;bold&lt;/b&gt;" in page
+
+
+def test_schema_script_injected_and_defused():
+    schema = '<script type="application/ld+json">{"@type":"Article","name":"x</script>evil"}</script>'
+    page = _page(schema_script=schema)
+    # the JSON-LD is present in the head...
+    assert "application/ld+json" in page
+    # ...but the dangerous closing sequence is neutralized so it can't break out
+    assert "x</script>evil" not in page
+    assert "<\\/" in page
+
+
+def test_optional_sections_absent_when_empty():
+    page = _page()   # no facts, no faq, no dates, no schema
+    assert "Key facts" not in page
+    assert "Frequently asked questions" not in page
+    assert 'class="meta"' not in page

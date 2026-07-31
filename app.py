@@ -240,12 +240,29 @@ def api_rewrite():
         rewrite = rewriter.call_claude(req)
         new_payload = rewriter.assemble_rewritten_payload(payload, rewrite)
         after = analyzer.build_analysis(new_payload)
+        # Ship the fix: a clean, standalone page from the optimized content, with
+        # generated schema baked in. Same call - no extra model spend.
+        schema = _schema_for(new_payload)
+        title = str(new_payload.get("title") or "optimized-page")
+        page_html = export.build_standalone_page(
+            title=title,
+            body_text=new_payload.get("body_text", ""),
+            meta_description=new_payload.get("meta_description"),
+            answer_summary=rewrite.get("answer_summary"),
+            key_facts=rewrite.get("key_facts"),
+            faq=rewrite.get("faq"),
+            published_date=new_payload.get("published_date"),
+            updated_date=new_payload.get("updated_date"),
+            schema_script=schema["ready_to_paste"],
+        )
         return jsonify({
             "before": before["total_score"],
             "after": after["total_score"],
             "gain": after["total_score"] - before["total_score"],
             "changes": rewrite.get("changes", []),
             "new_title": new_payload.get("title"),
+            "page_html": page_html,
+            "filename": f"{slugify(title)}.html",
         })
     except rewriter.RewriterError as exc:
         return jsonify({"error": str(exc)}), 400
