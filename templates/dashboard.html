@@ -197,7 +197,7 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
       case '/api/brand-index':   return search.includes('domain=') ? F.brand_index : F.brand_index_list;
       case '/api/tracked':       return F.tracked;
       case '/api/history':       return F.history;
-      case '/api/prompts':       return F.prompts;          // list (GET) or save (POST) — read-only
+      case '/api/prompts':       return F.prompts;          // list (GET) or save (POST) - read-only
       case '/api/prompts/delete':return F.prompts;
       case '/api/alerts':        return F.alerts;
       case '/api/alerts/clear':  return {ok:true, count:0, alerts:[]};
@@ -271,11 +271,11 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
   <div class="main">
     {% if demo %}
     <div class="topbar" style="background:#12563a;color:#eaf3ee;border-bottom-color:#0d3f2b;justify-content:space-between">
-      <span>👋 You're viewing an <b>interactive demo</b> with sample data — everything is read-only.</span>
+      <span>👋 You're viewing an <b>interactive demo</b> with sample data - everything is read-only.</span>
       <a href="/signup" style="background:#3ecf8e;color:#0f1712;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none;white-space:nowrap">Start for real →</a>
     </div>
     {% else %}
-    <div class="topbar"><span><b>Live tool</b> — analyze any page against AI citation-readiness signals.</span></div>
+    <div class="topbar"><span><b>Live tool</b> - analyze any page against AI citation-readiness signals.</span></div>
     {% endif %}
     <div class="body">
       <div id="view-analyze" class="view">
@@ -904,8 +904,8 @@ function renderAudit(d){
 }
 function fixFromAudit(tab, url){
   showView(tab);
-  if(tab==='schema'){ $('sc-url').value = url; runSchema(); }           // free — run it
-  else if(tab==='rewrite'){ $('rw-url').value = url; $('rw-url').focus(); // paid — land on the button, don't auto-spend
+  if(tab==='schema'){ $('sc-url').value = url; runSchema(); }           // free - run it
+  else if(tab==='rewrite'){ $('rw-url').value = url; $('rw-url').focus(); // paid - land on the button, don't auto-spend
     $('rw-url').scrollIntoView({behavior:'smooth',block:'center'}); }
 }
 function exportAudit(){

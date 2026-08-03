@@ -101,7 +101,7 @@ LANDING_DATA = {
         {"name": "Entity clarity", "score": "90", "pct": "90%", "color": "#1b5e40"},
     ],
     "steps": [
-        {"n": "1", "title": "Paste a URL", "desc": "Any page — a guide, a product page, a doc. citepilot reads it the way an AI crawler does."},
+        {"n": "1", "title": "Paste a URL", "desc": "Any page - a guide, a product page, a doc. citepilot reads it the way an AI crawler does."},
         {"n": "2", "title": "Get your score", "desc": "A single quotability score plus a breakdown across the five signals that matter."},
         {"n": "3", "title": "Ship the fixes", "desc": "Schema, citation targets and rewrites, ranked by impact and ready to paste."},
     ],
