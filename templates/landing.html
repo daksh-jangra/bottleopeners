@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>citepilot — Make your pages quotable to every AI answer engine</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: #f1f1ee; }
+  ::selection { background: #1b5e40; color: #fff; }
+  a { color: inherit; text-decoration: none; }
+  a:hover { color: #1b5e40; }
+  @keyframes barGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .cta-primary:hover { background: #164e35 !important; color: #fff !important; }
+  .cta-ghost:hover { color: #1b5e40 !important; }
+  .cta-mint:hover { background: #33b87d !important; color: #0f1712 !important; }
+  @media (max-width: 860px) {
+    .lp-header { grid-template-columns: 1fr !important; }
+    .lp-steps, .lp-signals { grid-template-columns: 1fr !important; }
+    .lp-h1 { font-size: 42px !important; }
+  }
+</style>
+</head>
+<body>
+<div style="background:#f1f1ee; color:#17201b; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;">
+
+  <nav style="max-width:1120px; margin:0 auto; padding:26px 40px; display:flex; align-items:center; justify-content:space-between;">
+    <span style="font-size:24px; font-weight:800; letter-spacing:-0.5px; color:#1b5e40;">citepilot</span>
+    <div style="display:flex; align-items:center; gap:28px; font-size:14.5px; color:#3d453f;">
+      <a href="#how">How it works</a><a href="#signals">Signals</a><a href="#pricing">Pricing</a>
+      <a href="/signin" style="color:#3d453f">Sign in</a>
+      <a href="/signup" class="cta-primary" style="font-weight:600; background:#1b5e40; color:#fff; padding:11px 20px; border-radius:24px;">Start free</a>
+    </div>
+  </nav>
+
+  <header class="lp-header" style="max-width:1120px; margin:0 auto; padding:64px 40px 80px; display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; align-items:center;">
+    <div>
+      <div style="display:inline-block; font-size:13px; font-weight:600; color:#1b5e40; background:#e9f1ec; padding:7px 14px; border-radius:20px; margin-bottom:24px;">AEO · Answer Engine Optimization</div>
+      <h1 class="lp-h1" style="font-size:58px; font-weight:800; line-height:1.03; letter-spacing:-2px; margin:0 0 22px;">Make your pages quotable to every AI answer engine.</h1>
+      <p style="font-size:19px; color:#5c635d; max-width:30em; margin:0 0 32px; line-height:1.55;">Paste a URL. citepilot scores how citable your page is to ChatGPT, Claude, Perplexity and Gemini — then hands you the fixes, ranked by impact.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center;">
+        <a href="/signin" class="cta-primary" style="font-size:15px; font-weight:600; background:#1b5e40; color:#fff; padding:14px 26px; border-radius:26px;">See your AI visibility free →</a>
+        <a href="/demo" class="cta-ghost" style="font-size:15px; font-weight:600; color:#3d453f; padding:14px 6px;">▶ Play with the demo</a>
+      </div>
+      <div style="margin-top:36px; font-size:13px; color:#9aa09a;">No card required · 50 free scans a month</div>
+    </div>
+
+    <div style="background:#fff; border:1px solid #e4e4df; border-radius:18px; padding:26px; box-shadow:0 24px 60px -34px rgba(23,32,27,0.4);">
+      <div style="display:flex; background:#f6f6f3; border:1px solid #e8e8e2; border-radius:12px; overflow:hidden; margin-bottom:22px;">
+        <div style="flex:1; padding:14px 16px; font-size:14px; color:#5c635d;">acme.io/guides/ai-visibility</div>
+        <div style="background:#1b5e40; color:#fff; font-size:13px; font-weight:600; padding:14px 18px;">Analyze</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:18px; margin-bottom:22px;">
+        <div style="width:96px; height:96px; border-radius:50%; background:conic-gradient(#1b5e40 0 79%, #e6ece8 79%); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <div style="width:72px; height:72px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800;">79</div>
+        </div>
+        <div style="font-size:14px; color:#3d453f;">Good, but leaving citations on the table. <strong style="color:#1b5e40;">4 quick wins</strong> found.</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        {% for b in bars %}
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;"><span>{{ b.name }}</span><span style="color:#8a8f89;">{{ b.score }}</span></div>
+            <div style="height:6px; background:#eef0ee; border-radius:99px;"><div style="height:100%; width:{{ b.pct }}; background:{{ b.color }}; border-radius:99px; transform-origin:left; animation:barGrow 1s ease-out;"></div></div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </header>
+
+  <section id="how" style="background:#fff; border-top:1px solid #e4e4df; border-bottom:1px solid #e4e4df;">
+    <div style="max-width:1120px; margin:0 auto; padding:76px 40px;">
+      <h2 style="font-size:36px; font-weight:800; letter-spacing:-1px; margin:0 0 48px;">Three steps to being cited</h2>
+      <div class="lp-steps" style="display:grid; grid-template-columns:repeat(3,1fr); gap:36px;">
+        {% for s in steps %}
+          <div style="background:#f6f6f3; border-radius:16px; padding:30px;">
+            <div style="width:40px; height:40px; border-radius:11px; background:#e9f1ec; color:#1b5e40; font-weight:800; display:flex; align-items:center; justify-content:center; margin-bottom:18px;">{{ s.n }}</div>
+            <h3 style="font-size:20px; font-weight:700; letter-spacing:-0.4px; margin:0 0 10px;">{{ s.title }}</h3>
+            <p style="font-size:15px; color:#5c635d; margin:0; line-height:1.55;">{{ s.desc }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section id="signals" style="max-width:1120px; margin:0 auto; padding:76px 40px;">
+    <h2 style="font-size:36px; font-weight:800; letter-spacing:-1px; margin:0 0 12px;">Five signals that decide if you get quoted</h2>
+    <p style="font-size:18px; color:#5c635d; max-width:36em; margin:0 0 40px;">Every scan grades your page on the signals AI answer engines actually lean on.</p>
+    <div class="lp-signals" style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;">
+      {% for s in signals %}
+        <div style="background:#fff; border:1px solid #e4e4df; border-radius:14px; padding:22px 24px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:16px; font-weight:600;">{{ s.name }}</span>
+          <span style="font-size:14px; color:#1b5e40; background:#e9f1ec; padding:5px 12px; border-radius:20px;">{{ s.tag }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section id="pricing" style="background:#17201b; color:#eef1ee;">
+    <div style="max-width:1120px; margin:0 auto; padding:84px 40px; text-align:center;">
+      <div style="font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:#7fae95; margin-bottom:20px;">Start free</div>
+      <h2 id="start" style="font-size:46px; font-weight:800; letter-spacing:-1.5px; margin:0 auto 18px; max-width:16em;">See what AI already thinks of your pages.</h2>
+      <p style="font-size:18px; color:#a9b3ad; max-width:30em; margin:0 auto 34px;">50 free scans a month. No card. Upgrade only when you want rewrites and monitoring.</p>
+      <a href="/signup" class="cta-mint" style="display:inline-block; font-size:15px; font-weight:600; background:#3ecf8e; color:#0f1712; padding:16px 34px; border-radius:28px;">Analyze your first page →</a>
+    </div>
+  </section>
+
+  <footer style="max-width:1120px; margin:0 auto; padding:36px 40px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; font-size:14px; color:#8a8f89;">
+    <span style="font-size:18px; font-weight:800; color:#1b5e40;">citepilot</span>
+    <span>© 2026 citepilot · AEO for the answer-engine era</span>
+  </footer>
+
+</div>
+</body>
+</html>

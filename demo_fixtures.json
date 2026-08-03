@@ -1,0 +1,798 @@
+{
+ "sample_url": "https://acme.io/guides/ai-visibility",
+ "sample_competitor": "https://rivalhq.com/seo-guide",
+ "sample_brand": "acme.io",
+ "analyze": {
+  "grade": "D",
+  "improvement": null,
+  "page": {
+   "headers": 13,
+   "lists": 3,
+   "tables": 5,
+   "title": "AI Visibility: The Complete Guide \u2014 Acme",
+   "word_count": 5228
+  },
+  "priorities": [
+   {
+    "action": "Add the page's real published or 'last updated' date - use the actual date; never invent one.",
+    "current_score": 0,
+    "factor": "recency_signals",
+    "label": "Freshness / date signals",
+    "max": 15,
+    "potential_gain": 15,
+    "specifics": [
+     "No published or updated date was found; add a date signal for recency-aware citations."
+    ]
+   },
+   {
+    "action": "Make headings specific and question-shaped; avoid generic labels like 'Steps', 'Tips', or 'Overview'.",
+    "current_score": 6,
+    "factor": "header_quality",
+    "label": "Header quality",
+    "max": 20,
+    "potential_gain": 14,
+    "specifics": [
+     "H2 'History' is short and generic; make it more specific for citation extraction.",
+     "H2 'Methods' is short and generic; make it more specific for citation extraction.",
+     "H3 'Getting indexed' is short and generic; make it more specific for citation extraction.",
+     "H3 'Preventing crawling' is short and generic; make it more specific for citation extraction.",
+     "H3 'Increasing prominence' is short and generic; make it more specific for citation extraction.",
+     "H3 'Multilingual SEO' is short and generic; make it more specific for citation extraction.",
+     "H2 'Legal cases' is short and generic; make it more specific for citation extraction."
+    ]
+   },
+   {
+    "action": "Open the page and each section with a direct, quotable answer or definition in the first sentence.",
+    "current_score": 16,
+    "factor": "answer_first_structure",
+    "label": "Answer-first structure",
+    "max": 20,
+    "potential_gain": 4,
+    "specifics": [
+     "The first two sentences do not clearly state the answer or definition up front."
+    ]
+   },
+   {
+    "action": "Add a visible author byline, the publisher name, and a meta description that summarizes the page.",
+    "current_score": 11,
+    "factor": "byline_authority",
+    "label": "Author & publisher signals",
+    "max": 15,
+    "potential_gain": 4,
+    "specifics": [
+     "Author or editorial byline cues were detected.",
+     "Organization or publisher cues were detected in the title, meta description, or schema.",
+     "No meta description was provided; add one that summarizes the page for citation contexts."
+    ]
+   }
+  ],
+  "schema": {
+   "detected_type": "article",
+   "ready_to_paste": "<script type=\"application/ld+json\">{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"Article\",\n  \"name\": \"Search engine optimization\",\n  \"url\": \"https://acme.io/guides/ai-visibility\",\n  \"sameAs\": \"http://www.wikidata.org/entity/Q180711\",\n  \"mainEntity\": \"http://www.wikidata.org/entity/Q180711\",\n  \"author\": {\n    \"@type\": \"Organization\",\n    \"name\": \"Contributors to Wikimedia projects\"\n  },\n  \"publisher\": {\n    \"@type\": \"Organization\",\n    \"name\": \"Wikimedia Foundation, Inc.\",\n    \"logo\": {\n      \"@type\": \"ImageObject\",\n      \"url\": \"https://www.wikimedia.org/static/images/wmf-hor-googpub.png\"\n    }\n  },\n  \"datePublished\": \"2003-02-24T22:58:37Z\",\n  \"dateModified\": \"2026-08-03T04:08:09Z\",\n  \"headline\": \"practice and strategies of increasing online visibility in search engine results pages\",\n  \"wordCount\": 5228,\n  \"articleBody\": \"Search engine optimization This article has multiple issues. Please help improve it or discuss these issues on the talk page. (Learn how and...\"\n}</script>"
+  },
+  "score": 63,
+  "source": "https://acme.io/guides/ai-visibility",
+  "status": "Needs work - several gaps to close",
+  "strengths": [
+   {
+    "factor": "list_table_presence",
+    "label": "Lists & tables",
+    "max": 15,
+    "score": 15
+   },
+   {
+    "factor": "factual_specificity",
+    "label": "Factual specificity",
+    "max": 15,
+    "score": 15
+   }
+  ]
+ },
+ "audit": {
+  "categories": [
+   {
+    "checks": [
+     {
+      "category": "Structure & Schema",
+      "check": "Schema.org markup",
+      "detail": "3 types: Article, Organization, ImageObject",
+      "fix": "schema",
+      "status": "pass"
+     },
+     {
+      "category": "Structure & Schema",
+      "check": "FAQ schema",
+      "detail": "No FAQPage / Question markup - add Q&A schema for answer engines.",
+      "fix": "schema",
+      "status": "fail"
+     },
+     {
+      "category": "Structure & Schema",
+      "check": "Open Graph tags",
+      "detail": "Missing og:description, og:image, og:url.",
+      "fix": null,
+      "status": "warn"
+     },
+     {
+      "category": "Structure & Schema",
+      "check": "Canonical tag",
+      "detail": "https://acme.io/guides/ai-visibility",
+      "fix": null,
+      "status": "pass"
+     }
+    ],
+    "name": "Structure & Schema"
+   },
+   {
+    "checks": [
+     {
+      "category": "Content Quality",
+      "check": "Meta description",
+      "detail": "No meta description - add a concise page summary.",
+      "fix": "rewrite",
+      "status": "fail"
+     },
+     {
+      "category": "Content Quality",
+      "check": "BLUF-style content",
+      "detail": "Opens with a direct, quotable answer. (16/20 pts)",
+      "fix": "rewrite",
+      "status": "pass"
+     },
+     {
+      "category": "Content Quality",
+      "check": "Heading hierarchy",
+      "detail": "H2 'History' is short and generic; make it more specific for citation extraction. (6/20 pts)",
+      "fix": "rewrite",
+      "status": "fail"
+     },
+     {
+      "category": "Content Quality",
+      "check": "Lists & tables",
+      "detail": "Uses lists/tables AI can extract. (15/15 pts)",
+      "fix": "rewrite",
+      "status": "pass"
+     },
+     {
+      "category": "Content Quality",
+      "check": "Factual specificity",
+      "detail": "Dense with concrete, citable facts. (15/15 pts)",
+      "fix": "rewrite",
+      "status": "pass"
+     },
+     {
+      "category": "Content Quality",
+      "check": "Author & publisher signals",
+      "detail": "No meta description was provided; add one that summarizes the page for citation contexts. (11/15 pts)",
+      "fix": "rewrite",
+      "status": "warn"
+     },
+     {
+      "category": "Content Quality",
+      "check": "Freshness / dates",
+      "detail": "No published or updated date was found; add a date signal for recency-aware citations. (0/15 pts)",
+      "fix": null,
+      "status": "fail"
+     }
+    ],
+    "name": "Content Quality"
+   },
+   {
+    "checks": [
+     {
+      "category": "Technical",
+      "check": "HTTPS",
+      "detail": "Served over HTTPS.",
+      "fix": null,
+      "status": "pass"
+     },
+     {
+      "category": "Technical",
+      "check": "HSTS",
+      "detail": "Strict-Transport-Security header set.",
+      "fix": null,
+      "status": "pass"
+     }
+    ],
+    "name": "Technical"
+   },
+   {
+    "checks": [
+     {
+      "category": "Server-Side Rendering",
+      "check": "JS-free rendering",
+      "detail": "5228 words readable without JavaScript.",
+      "fix": null,
+      "status": "pass"
+     }
+    ],
+    "name": "Server-Side Rendering"
+   }
+  ],
+  "source": "https://acme.io/guides/ai-visibility",
+  "summary": {
+   "fail": 4,
+   "pass": 8,
+   "total": 14,
+   "warn": 2
+  },
+  "title": "AI Visibility: The Complete Guide \u2014 Acme"
+ },
+ "schema": {
+  "detected_type": "article",
+  "ready_to_paste": "<script type=\"application/ld+json\">{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"Article\",\n  \"name\": \"Search engine optimization\",\n  \"url\": \"https://acme.io/guides/ai-visibility\",\n  \"sameAs\": \"http://www.wikidata.org/entity/Q180711\",\n  \"mainEntity\": \"http://www.wikidata.org/entity/Q180711\",\n  \"author\": {\n    \"@type\": \"Organization\",\n    \"name\": \"Contributors to Wikimedia projects\"\n  },\n  \"publisher\": {\n    \"@type\": \"Organization\",\n    \"name\": \"Wikimedia Foundation, Inc.\",\n    \"logo\": {\n      \"@type\": \"ImageObject\",\n      \"url\": \"https://www.wikimedia.org/static/images/wmf-hor-googpub.png\"\n    }\n  },\n  \"datePublished\": \"2003-02-24T22:58:37Z\",\n  \"dateModified\": \"2026-08-03T04:08:09Z\",\n  \"headline\": \"practice and strategies of increasing online visibility in search engine results pages\",\n  \"wordCount\": 5228,\n  \"articleBody\": \"Search engine optimization This article has multiple issues. Please help improve it or discuss these issues on the talk page. (Learn how and...\"\n}</script>",
+  "title": "AI Visibility: The Complete Guide \u2014 Acme"
+ },
+ "report": {
+  "grade": "D",
+  "html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Citation-Readiness Report</title>\n<style>\n*{box-sizing:border-box} body{margin:0;font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;background:#f6f7f9;color:#1a1d23}\n.wrap{max-width:820px;margin:0 auto;padding:36px 22px}\nh1{font-size:24px;margin:0 0 2px} .src{color:#6b7280;margin:0 0 24px;word-break:break-all}\n.hero{display:flex;align-items:center;gap:22px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:24px;margin-bottom:20px}\n.gradebox{width:96px;height:96px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:800;color:#fff;flex:none}\n.score{font-size:40px;font-weight:800;line-height:1} .score small{font-size:17px;color:#6b7280;font-weight:500}\n.status{color:#374151;font-weight:600;margin-top:4px}\n.card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:22px;margin-bottom:18px}\nh2{font-size:17px;margin:0 0 14px}\n.item{padding:14px 0;border-top:1px solid #eef0f3} .item:first-of-type{border-top:none;padding-top:0}\n.item-head{display:flex;justify-content:space-between;font-weight:600;font-size:15.5px}\n.gain{color:#16a34a;font-weight:700} .cur{color:#6b7280;font-size:13px;margin:2px 0}\n.bar{height:7px;background:#eef0f3;border-radius:6px;overflow:hidden;margin:6px 0} .bar i{display:block;height:100%}\n.action{margin:8px 0 0} ul.spec{margin:6px 0 0;padding-left:18px;color:#6b7280;font-size:13.5px}\n.imp .up{color:#16a34a} ul{margin:0;padding-left:20px} li{margin:3px 0}\npre{background:#0b0d12;color:#c9d1d9;border-radius:8px;padding:14px;overflow:auto;font-size:12.5px}\n.foot{color:#9aa1ac;font-size:12.5px;text-align:center;margin-top:8px}\n</style></head><body><div class=\"wrap\">\n<h1>AI Citation-Readiness Report</h1>\n<p class=\"src\">https://acme.io/guides/ai-visibility</p>\n\n<div class=\"hero\">\n  <div class=\"gradebox\" style=\"background:#ea580c\">D</div>\n  <div><div class=\"score\">63<small>/100</small></div>\n  <div class=\"status\">Needs work - several gaps to close</div></div>\n</div>\n\n\n\n<div class=\"card\"><h2>Top fixes, ranked by impact</h2>\n<div class=\"item\">\n          <div class=\"item-head\"><span><b>1.</b> Freshness / date signals</span>\n          <span class=\"gain\">+15 pts</span></div>\n          <div class=\"cur\">Currently 0/15</div>\n          <div class=\"bar\"><i style=\"width:0%;background:#dc2626\"></i></div>\n          <p class=\"action\">Add the page&#x27;s real published or &#x27;last updated&#x27; date - use the actual date; never invent one.</p>\n          <ul class=\"spec\"><li>No published or updated date was found; add a date signal for recency-aware citations.</li></ul>\n        </div><div class=\"item\">\n          <div class=\"item-head\"><span><b>2.</b> Header quality</span>\n          <span class=\"gain\">+14 pts</span></div>\n          <div class=\"cur\">Currently 6/20</div>\n          <div class=\"bar\"><i style=\"width:30%;background:#dc2626\"></i></div>\n          <p class=\"action\">Make headings specific and question-shaped; avoid generic labels like &#x27;Steps&#x27;, &#x27;Tips&#x27;, or &#x27;Overview&#x27;.</p>\n          <ul class=\"spec\"><li>H2 &#x27;History&#x27; is short and generic; make it more specific for citation extraction.</li><li>H2 &#x27;Methods&#x27; is short and generic; make it more specific for citation extraction.</li><li>H3 &#x27;Getting indexed&#x27; is short and generic; make it more specific for citation extraction.</li><li>H3 &#x27;Preventing crawling&#x27; is short and generic; make it more specific for citation extraction.</li><li>H3 &#x27;Increasing prominence&#x27; is short and generic; make it more specific for citation extraction.</li><li>H3 &#x27;Multilingual SEO&#x27; is short and generic; make it more specific for citation extraction.</li><li>H2 &#x27;Legal cases&#x27; is short and generic; make it more specific for citation extraction.</li></ul>\n        </div><div class=\"item\">\n          <div class=\"item-head\"><span><b>3.</b> Answer-first structure</span>\n          <span class=\"gain\">+4 pts</span></div>\n          <div class=\"cur\">Currently 16/20</div>\n          <div class=\"bar\"><i style=\"width:80%;background:#16a34a\"></i></div>\n          <p class=\"action\">Open the page and each section with a direct, quotable answer or definition in the first sentence.</p>\n          <ul class=\"spec\"><li>The first two sentences do not clearly state the answer or definition up front.</li></ul>\n        </div><div class=\"item\">\n          <div class=\"item-head\"><span><b>4.</b> Author &amp; publisher signals</span>\n          <span class=\"gain\">+4 pts</span></div>\n          <div class=\"cur\">Currently 11/15</div>\n          <div class=\"bar\"><i style=\"width:73%;background:#d97706\"></i></div>\n          <p class=\"action\">Add a visible author byline, the publisher name, and a meta description that summarizes the page.</p>\n          <ul class=\"spec\"><li>Author or editorial byline cues were detected.</li><li>Organization or publisher cues were detected in the title, meta description, or schema.</li><li>No meta description was provided; add one that summarizes the page for citation contexts.</li></ul>\n        </div></div>\n\n<div class=\"card\"><h2>Strengths to keep</h2><ul><li>Lists &amp; tables <b>15/15</b></li><li>Factual specificity <b>15/15</b></li></ul></div>\n\n<div class=\"card\">\n          <h2>Paste this into your page</h2>\n          <p class=\"cur\">Structured-data markup (article) helps Google understand the page.</p>\n          <pre>&lt;script type=&quot;application/ld+json&quot;&gt;{\n  &quot;@context&quot;: &quot;https://schema.org&quot;,\n  &quot;@type&quot;: &quot;Article&quot;,\n  &quot;name&quot;: &quot;Search engine optimization&quot;,\n  &quot;url&quot;: &quot;https://acme.io/guides/ai-visibility&quot;,\n  &quot;sameAs&quot;: &quot;http://www.wikidata.org/entity/Q180711&quot;,\n  &quot;mainEntity&quot;: &quot;http://www.wikidata.org/entity/Q180711&quot;,\n  &quot;author&quot;: {\n    &quot;@type&quot;: &quot;Organization&quot;,\n    &quot;name&quot;: &quot;Contributors to Wikimedia projects&quot;\n  },\n  &quot;publisher&quot;: {\n    &quot;@type&quot;: &quot;Organization&quot;,\n    &quot;name&quot;: &quot;Wikimedia Foundation, Inc.&quot;,\n    &quot;logo&quot;: {\n      &quot;@type&quot;: &quot;ImageObject&quot;,\n      &quot;url&quot;: &quot;https://www.wikimedia.org/static/images/wmf-hor-googpub.png&quot;\n    }\n  },\n  &quot;datePublished&quot;: &quot;2003-02-24T22:58:37Z&quot;,\n  &quot;dateModified&quot;: &quot;2026-08-03T04:08:09Z&quot;,\n  &quot;headline&quot;: &quot;practice and strategies of increasing online visibility in search engine results pages&quot;,\n  &quot;wordCount&quot;: 5228,\n  &quot;articleBody&quot;: &quot;Search engine optimization This article has multiple issues. Please help improve it or discuss these issues on the talk page. (Learn how and...&quot;\n}&lt;/script&gt;</pre></div>\n\n<p class=\"foot\">Generated by the AI Citation-Readiness pipeline \u00b7 scores estimate how quotable this page is to AI answer engines and search.</p>\n</div></body></html>",
+  "score": 63,
+  "status": "Needs work - several gaps to close",
+  "title": "AI Visibility: The Complete Guide \u2014 Acme"
+ },
+ "teardown": {
+  "competitor": {
+   "title": "The RivalHQ SEO Playbook",
+   "url": "https://rivalhq.com/seo-guide"
+  },
+  "factors": [
+   {
+    "key": "header_quality",
+    "label": "Header quality",
+    "lead": 10,
+    "leader": "them",
+    "max": 20,
+    "recommendation": "Make headings specific and question-shaped; avoid generic labels like 'Steps', 'Tips', or 'Overview'.",
+    "them": 16,
+    "you": 6,
+    "your_issue": "H2 'History' is short and generic; make it more specific for citation extraction."
+   },
+   {
+    "key": "answer_first_structure",
+    "label": "Answer-first structure",
+    "lead": 4,
+    "leader": "them",
+    "max": 20,
+    "recommendation": "Open the page and each section with a direct, quotable answer or definition in the first sentence.",
+    "them": 20,
+    "you": 16,
+    "your_issue": "The first two sentences do not clearly state the answer or definition up front."
+   },
+   {
+    "key": "list_table_presence",
+    "label": "Lists & tables",
+    "lead": -5,
+    "leader": "you",
+    "max": 15,
+    "recommendation": "Present steps as numbered lists and comparisons as tables so AI can extract discrete points.",
+    "them": 10,
+    "you": 15,
+    "your_issue": null
+   },
+   {
+    "key": "factual_specificity",
+    "label": "Factual specificity",
+    "lead": -1,
+    "leader": "you",
+    "max": 15,
+    "recommendation": "Add concrete numbers, dates, and named entities; replace vague phrasing with verifiable facts.",
+    "them": 14,
+    "you": 15,
+    "your_issue": "The content includes multiple concrete facts that are easier to cite and verify."
+   },
+   {
+    "key": "byline_authority",
+    "label": "Author & publisher signals",
+    "lead": 4,
+    "leader": "them",
+    "max": 15,
+    "recommendation": "Add a visible author byline, the publisher name, and a meta description that summarizes the page.",
+    "them": 15,
+    "you": 11,
+    "your_issue": "No meta description was provided; add one that summarizes the page for citation contexts."
+   },
+   {
+    "key": "recency_signals",
+    "label": "Freshness / date signals",
+    "lead": 0,
+    "leader": "tie",
+    "max": 15,
+    "recommendation": "Add the page's real published or 'last updated' date - use the actual date; never invent one.",
+    "them": 0,
+    "you": 0,
+    "your_issue": "No published or updated date was found; add a date signal for recency-aware citations."
+   }
+  ],
+  "gaps": [
+   {
+    "key": "header_quality",
+    "label": "Header quality",
+    "lead": 10,
+    "leader": "them",
+    "max": 20,
+    "recommendation": "Make headings specific and question-shaped; avoid generic labels like 'Steps', 'Tips', or 'Overview'.",
+    "them": 16,
+    "you": 6,
+    "your_issue": "H2 'History' is short and generic; make it more specific for citation extraction."
+   },
+   {
+    "key": "answer_first_structure",
+    "label": "Answer-first structure",
+    "lead": 4,
+    "leader": "them",
+    "max": 20,
+    "recommendation": "Open the page and each section with a direct, quotable answer or definition in the first sentence.",
+    "them": 20,
+    "you": 16,
+    "your_issue": "The first two sentences do not clearly state the answer or definition up front."
+   },
+   {
+    "key": "byline_authority",
+    "label": "Author & publisher signals",
+    "lead": 4,
+    "leader": "them",
+    "max": 15,
+    "recommendation": "Add a visible author byline, the publisher name, and a meta description that summarizes the page.",
+    "them": 15,
+    "you": 11,
+    "your_issue": "No meta description was provided; add one that summarizes the page for citation contexts."
+   }
+  ],
+  "score_gap": 12,
+  "their_score": 75,
+  "your": {
+   "title": "AI Visibility: The Complete Guide \u2014 Acme",
+   "url": "https://acme.io/guides/ai-visibility"
+  },
+  "your_score": 63,
+  "your_wins": [
+   {
+    "key": "list_table_presence",
+    "label": "Lists & tables",
+    "lead": -5,
+    "leader": "you",
+    "max": 15,
+    "recommendation": "Present steps as numbered lists and comparisons as tables so AI can extract discrete points.",
+    "them": 10,
+    "you": 15,
+    "your_issue": null
+   },
+   {
+    "key": "factual_specificity",
+    "label": "Factual specificity",
+    "lead": -1,
+    "leader": "you",
+    "max": 15,
+    "recommendation": "Add concrete numbers, dates, and named entities; replace vague phrasing with verifiable facts.",
+    "them": 14,
+    "you": 15,
+    "your_issue": "The content includes multiple concrete facts that are easier to cite and verify."
+   }
+  ]
+ },
+ "export": {
+  "url": "https://acme.io/guides/ai-visibility",
+  "title": "AI Visibility: The Complete Guide \u2014 Acme",
+  "filename": "acme-ai-visibility.patched.html",
+  "detected_type": "article",
+  "location": "head",
+  "replaced_existing": 1,
+  "score": 63,
+  "grade": "D",
+  "schema_script": "<script type=\"application/ld+json\">{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"Article\",\n  \"name\": \"Search engine optimization\",\n  \"url\": \"https://acme.io/guides/ai-visibility\",\n  \"sameAs\": \"http://www.wikidata.org/entity/Q180711\",\n  \"mainEntity\": \"http://www.wikidata.org/entity/Q180711\",\n  \"author\": {\n    \"@type\": \"Organization\",\n    \"name\": \"Contributors to Wikimedia projects\"\n  },\n  \"publisher\": {\n    \"@type\": \"Organization\",\n    \"name\": \"Wikimedia Foundation, Inc.\",\n    \"logo\": {\n      \"@type\": \"ImageObject\",\n      \"url\": \"https://www.wikimedia.org/static/images/wmf-hor-googpub.png\"\n    }\n  },\n  \"datePublished\": \"2003-02-24T22:58:37Z\",\n  \"dateModified\": \"2026-08-03T04:08:09Z\",\n  \"headline\": \"practice and strategies of increasing online visibility in search engine results pages\",\n  \"wordCount\": 5228,\n  \"articleBody\": \"Search engine optimization This article has multiple issues. Please help improve it or discuss these issues on the talk page. (Learn how and...\"\n}</script>",
+  "patched_html": "<!-- Demo mode: sign up to generate and download the full patched HTML for your page. -->",
+  "fixes": [
+   {
+    "action": "Add the page's real published or 'last updated' date - use the actual date; never invent one.",
+    "current_score": 0,
+    "factor": "recency_signals",
+    "label": "Freshness / date signals",
+    "max": 15,
+    "potential_gain": 15,
+    "specifics": [
+     "No published or updated date was found; add a date signal for recency-aware citations."
+    ]
+   },
+   {
+    "action": "Make headings specific and question-shaped; avoid generic labels like 'Steps', 'Tips', or 'Overview'.",
+    "current_score": 6,
+    "factor": "header_quality",
+    "label": "Header quality",
+    "max": 20,
+    "potential_gain": 14,
+    "specifics": [
+     "H2 'History' is short and generic; make it more specific for citation extraction.",
+     "H2 'Methods' is short and generic; make it more specific for citation extraction.",
+     "H3 'Getting indexed' is short and generic; make it more specific for citation extraction.",
+     "H3 'Preventing crawling' is short and generic; make it more specific for citation extraction.",
+     "H3 'Increasing prominence' is short and generic; make it more specific for citation extraction.",
+     "H3 'Multilingual SEO' is short and generic; make it more specific for citation extraction.",
+     "H2 'Legal cases' is short and generic; make it more specific for citation extraction."
+    ]
+   },
+   {
+    "action": "Open the page and each section with a direct, quotable answer or definition in the first sentence.",
+    "current_score": 16,
+    "factor": "answer_first_structure",
+    "label": "Answer-first structure",
+    "max": 20,
+    "potential_gain": 4,
+    "specifics": [
+     "The first two sentences do not clearly state the answer or definition up front."
+    ]
+   },
+   {
+    "action": "Add a visible author byline, the publisher name, and a meta description that summarizes the page.",
+    "current_score": 11,
+    "factor": "byline_authority",
+    "label": "Author & publisher signals",
+    "max": 15,
+    "potential_gain": 4,
+    "specifics": [
+     "Author or editorial byline cues were detected.",
+     "Organization or publisher cues were detected in the title, meta description, or schema.",
+     "No meta description was provided; add one that summarizes the page for citation contexts."
+    ]
+   }
+  ]
+ },
+ "rewrite": {
+  "before": 63,
+  "after": 81,
+  "gain": 18,
+  "changes": [
+   "Rewrote the intro to answer \"What is AI visibility?\" in the first sentence.",
+   "Turned 5 generic H2s into specific, question-shaped headings.",
+   "Added a dated \"Last updated\" line and an author byline for the page.",
+   "Converted the tactics section into a scannable numbered list."
+  ]
+ },
+ "sentiment": {
+  "mix": {
+   "positive": {
+    "count": 5,
+    "pct": 63
+   },
+   "neutral": {
+    "count": 2,
+    "pct": 25
+   },
+   "negative": {
+    "count": 0,
+    "pct": 0
+   },
+   "not_mentioned": {
+    "count": 1,
+    "pct": 12
+   }
+  },
+  "results": [
+   {
+    "query": "What are the best AI visibility tracking tools?",
+    "sentiment": "positive",
+    "evidence": "Acme is often cited as a leading AI visibility platform for tracking brand mentions across answer engines."
+   },
+   {
+    "query": "How do I measure my brand's presence in ChatGPT?",
+    "sentiment": "positive",
+    "evidence": "Tools like Acme let you monitor how often your brand is cited in AI answers."
+   },
+   {
+    "query": "Which AEO tools do agencies recommend?",
+    "sentiment": "neutral",
+    "evidence": "Acme is listed among several options agencies evaluate."
+   },
+   {
+    "query": "Is Acme worth it for a small team?",
+    "sentiment": "positive",
+    "evidence": "Reviewers describe Acme as approachable for small marketing teams."
+   },
+   {
+    "query": "Best free answer-engine optimization checker?",
+    "sentiment": "neutral",
+    "evidence": "Acme offers a free tier alongside paid competitors."
+   },
+   {
+    "query": "Who leads the AEO category in 2026?",
+    "sentiment": "positive",
+    "evidence": "Acme is named as one of the category's front-runners."
+   },
+   {
+    "query": "How to fix low citation rates in Gemini?",
+    "sentiment": "positive",
+    "evidence": "Guides from Acme are referenced for improving citation rates."
+   },
+   {
+    "query": "Cheapest way to audit schema for AEO?",
+    "sentiment": "not_mentioned",
+    "evidence": ""
+   }
+  ]
+ },
+ "competitors": {
+  "target": "acme.io",
+  "target_cited": 3,
+  "queries": 8,
+  "competitors": [
+   {
+    "domain": "acme.io",
+    "cited_in": 3,
+    "is_target": true
+   },
+   {
+    "domain": "rivalhq.com",
+    "cited_in": 6,
+    "is_target": false
+   },
+   {
+    "domain": "searchbrew.com",
+    "cited_in": 5,
+    "is_target": false
+   },
+   {
+    "domain": "ranklab.io",
+    "cited_in": 4,
+    "is_target": false
+   },
+   {
+    "domain": "aeotools.co",
+    "cited_in": 3,
+    "is_target": false
+   },
+   {
+    "domain": "citemetric.com",
+    "cited_in": 2,
+    "is_target": false
+   },
+   {
+    "domain": "answergraph.ai",
+    "cited_in": 2,
+    "is_target": false
+   }
+  ]
+ },
+ "niche": {
+  "questions": [
+   "What is answer engine optimization (AEO)?",
+   "How do I get my brand cited by ChatGPT?",
+   "Best tools to track AI visibility in 2026",
+   "How is AEO different from traditional SEO?",
+   "What schema markup helps AI answer engines?",
+   "How do I measure brand mentions across LLMs?",
+   "Why isn't my site showing up in Perplexity?",
+   "How often should I audit my pages for AEO?"
+  ]
+ },
+ "brand_index_list": {
+  "brands": [
+   "acme.io",
+   "rivalhq.com",
+   "searchbrew.com"
+  ]
+ },
+ "brand_index": {
+  "domain": "acme.io",
+  "index": 71,
+  "delta": 6,
+  "snapshots": 6,
+  "history": [
+   {
+    "score": 52
+   },
+   {
+    "score": 55
+   },
+   {
+    "score": 61
+   },
+   {
+    "score": 63
+   },
+   {
+    "score": 68
+   },
+   {
+    "score": 71
+   }
+  ],
+  "components": [
+   {
+    "label": "Quotability (Analyze)",
+    "weight": 0.4,
+    "present": true,
+    "value": 63
+   },
+   {
+    "label": "Citation rate (Competitors)",
+    "weight": 0.35,
+    "present": true,
+    "value": 38
+   },
+   {
+    "label": "Sentiment (positive share)",
+    "weight": 0.25,
+    "present": true,
+    "value": 63
+   }
+  ]
+ },
+ "tracked": {
+  "targets": [
+   {
+    "target": "acme.io/guides/ai-visibility",
+    "kind": "analyze",
+    "latest_score": 63,
+    "first_score": 41,
+    "runs": 6,
+    "latest": "2026-05-30T09:00:00"
+   },
+   {
+    "target": "acme.io/product",
+    "kind": "analyze",
+    "latest_score": 74,
+    "first_score": 70,
+    "runs": 4,
+    "latest": "2026-05-30T09:00:00"
+   },
+   {
+    "target": "acme.io",
+    "kind": "sentiment",
+    "latest_score": 63,
+    "first_score": 48,
+    "runs": 5,
+    "latest": "2026-05-29T09:00:00"
+   }
+  ]
+ },
+ "history": {
+  "runs": [
+   {
+    "score": 41,
+    "created_at": "2026-03-02T09:00:00",
+    "detail": {
+     "grade": "F"
+    }
+   },
+   {
+    "score": 47,
+    "created_at": "2026-03-16T09:00:00",
+    "detail": {
+     "grade": "F"
+    }
+   },
+   {
+    "score": 55,
+    "created_at": "2026-04-06T09:00:00",
+    "detail": {
+     "grade": "D"
+    }
+   },
+   {
+    "score": 58,
+    "created_at": "2026-04-20T09:00:00",
+    "detail": {
+     "grade": "D"
+    }
+   },
+   {
+    "score": 63,
+    "created_at": "2026-05-30T09:00:00",
+    "detail": {
+     "grade": "D"
+    }
+   }
+  ]
+ },
+ "prompts": {
+  "prompts": [
+   {
+    "id": 1,
+    "text": "What are the best AI visibility tracking tools?"
+   },
+   {
+    "id": 2,
+    "text": "How do I get my brand cited by ChatGPT?"
+   },
+   {
+    "id": 3,
+    "text": "Best answer engine optimization tools in 2026"
+   },
+   {
+    "id": 4,
+    "text": "How is AEO different from SEO?"
+   }
+  ]
+ },
+ "alerts": {
+  "count": 1,
+  "alerts": [
+   {
+    "target": "acme.io/product",
+    "metric": "quotability",
+    "delta": 7,
+    "previous_score": 74,
+    "current_score": 67,
+    "created_at": "2026-05-30T09:00:00"
+   }
+  ],
+  "notify": [],
+  "scheduler": {
+   "enabled": true,
+   "minutes": 720,
+   "last_run": "2026-05-30T09:00:00"
+  }
+ },
+ "brief": {
+  "suggested_title": "AI Visibility: How to Get Your Brand Cited by ChatGPT, Claude & Gemini",
+  "intent_label": "Informational \u00b7 how-to",
+  "schema_type": "Article",
+  "target_word_count": 1600,
+  "answer_first": "AI visibility is how often answer engines like ChatGPT, Claude, Perplexity and Gemini cite your brand in their responses. You improve it by structuring pages answer-first, adding citable claims and schema, and clarifying entity and freshness signals.",
+  "outline": [
+   "What \"AI visibility\" means and why it's the new SEO",
+   "The six signals answer engines use to decide who gets quoted",
+   "How to structure a page answer-first",
+   "Adding citable claims, stats and schema",
+   "Measuring and monitoring your citation rate over time"
+  ],
+  "must_include": [
+   {
+    "label": "A one-sentence definition up top",
+    "why": "Answer engines lift the first direct definition they find."
+   },
+   {
+    "label": "At least 3 concrete, sourced stats",
+    "why": "Citable numbers are what models quote back to users."
+   },
+   {
+    "label": "Article + FAQ schema",
+    "why": "Structured data makes the page machine-legible for extraction."
+   },
+   {
+    "label": "A visible author byline and updated date",
+    "why": "Authority and freshness signals lift citation confidence."
+   }
+  ]
+ },
+ "pulse": {
+  "pulsed": 3
+ },
+ "batch": {
+  "analyzed": 5,
+  "found": 5,
+  "capped": false,
+  "cap": 25,
+  "results": [
+   {
+    "ok": true,
+    "target": "acme.io/guides/ai-visibility",
+    "score": 63,
+    "grade": "D"
+   },
+   {
+    "ok": true,
+    "target": "acme.io/product",
+    "score": 74,
+    "grade": "C"
+   },
+   {
+    "ok": true,
+    "target": "acme.io/pricing",
+    "score": 58,
+    "grade": "D"
+   },
+   {
+    "ok": true,
+    "target": "acme.io/blog/aeo-basics",
+    "score": 81,
+    "grade": "B"
+   },
+   {
+    "ok": true,
+    "target": "acme.io/about",
+    "score": 49,
+    "grade": "F"
+   }
+  ]
+ }
+}

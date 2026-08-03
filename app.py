@@ -19,7 +19,7 @@ import threading
 import time
 from typing import Any
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request
 
 import analyzer
 import audit
@@ -92,9 +92,69 @@ def _fetch_payload(url: str) -> dict[str, Any]:
     return ingest.extract_html_payload(html, url)
 
 
+LANDING_DATA = {
+    "app_url": "/app",
+    "bars": [
+        {"name": "Answer-first structure", "score": "84", "pct": "84%", "color": "#1b5e40"},
+        {"name": "Citable claims", "score": "71", "pct": "71%", "color": "#1b5e40"},
+        {"name": "Schema", "score": "48", "pct": "48%", "color": "#c98a2b"},
+        {"name": "Entity clarity", "score": "90", "pct": "90%", "color": "#1b5e40"},
+    ],
+    "steps": [
+        {"n": "1", "title": "Paste a URL", "desc": "Any page — a guide, a product page, a doc. citepilot reads it the way an AI crawler does."},
+        {"n": "2", "title": "Get your score", "desc": "A single quotability score plus a breakdown across the five signals that matter."},
+        {"n": "3", "title": "Ship the fixes", "desc": "Schema, citation targets and rewrites, ranked by impact and ready to paste."},
+    ],
+    "signals": [
+        {"name": "Answer-first structure", "tag": "How you're read"},
+        {"name": "Citable claims & stats", "tag": "What gets quoted"},
+        {"name": "Schema & structured data", "tag": "Machine clarity"},
+        {"name": "Entity clarity", "tag": "Who you are"},
+        {"name": "Freshness signals", "tag": "Recency"},
+    ],
+}
+
+
 @app.get("/")
 def index():
+    return render_template("landing.html", **LANDING_DATA)
+
+
+@app.get("/app")
+def dashboard():
     return render_template("dashboard.html")
+
+
+# Auth pages are visual-only for now ("for eyes"): the forms POST here and we
+# simply drop the visitor into the tool. Real email/password auth comes later,
+# at which point these handlers validate credentials and set a session.
+@app.get("/signin")
+def signin():
+    return render_template("signin.html")
+
+
+@app.get("/signup")
+def signup():
+    return render_template("signup.html")
+
+
+@app.post("/signin")
+@app.post("/signup")
+def auth_submit():
+    return redirect("/app")
+
+
+# Read-only interactive demo: the same dashboard, but a client-side fetch shim
+# answers every /api/* call from baked sample data (see demo_fixtures.json), so
+# visitors can explore every tab without an account, a URL, or spending credit.
+_DEMO_FIXTURES_PATH = os.path.join(os.path.dirname(__file__), "demo_fixtures.json")
+with open(_DEMO_FIXTURES_PATH, encoding="utf-8") as _f:
+    DEMO_FIXTURES = json.load(_f)
+
+
+@app.get("/demo")
+def demo():
+    return render_template("dashboard.html", demo=True, demo_fixtures=DEMO_FIXTURES)
 
 
 def _analyze_url(url: str) -> dict[str, Any]:
