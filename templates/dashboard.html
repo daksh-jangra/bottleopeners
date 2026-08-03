@@ -170,6 +170,57 @@
 </style>
 </head>
 <body>
+{% if demo %}
+<script>
+/* Read-only demo: answer every /api/* call from baked sample data so visitors
+   can explore every tab with no account, no URL, and zero API credit spent.
+   Installed before the main script so window.fetch is patched before any call. */
+window.CITEPILOT_DEMO = true;
+window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
+(function(){
+  const F = window.DEMO_FIXTURES;
+  const real = window.fetch.bind(window);
+  const reply = obj => Promise.resolve(new Response(JSON.stringify(obj),
+    {status:200, headers:{'Content-Type':'application/json'}}));
+  function route(path, search){
+    switch(path){
+      case '/api/analyze':       return F.analyze;
+      case '/api/audit':         return F.audit;
+      case '/api/schema':        return F.schema;
+      case '/api/report':        return F.report;
+      case '/api/teardown':      return F.teardown;
+      case '/api/export':        return F.export;
+      case '/api/rewrite':       return F.rewrite;
+      case '/api/sentiment':     return F.sentiment;
+      case '/api/competitors':   return F.competitors;
+      case '/api/niche':         return F.niche;
+      case '/api/brand-index':   return search.includes('domain=') ? F.brand_index : F.brand_index_list;
+      case '/api/tracked':       return F.tracked;
+      case '/api/history':       return F.history;
+      case '/api/prompts':       return F.prompts;          // list (GET) or save (POST) — read-only
+      case '/api/prompts/delete':return F.prompts;
+      case '/api/alerts':        return F.alerts;
+      case '/api/alerts/clear':  return {ok:true, count:0, alerts:[]};
+      case '/api/pulse':         return F.pulse;
+      case '/api/batch':         return F.batch;
+      case '/api/brief':         return F.brief;
+    }
+    return undefined;
+  }
+  window.fetch = function(input, init){
+    try{
+      const url = (typeof input === 'string') ? input : input.url;
+      const u = new URL(url, window.location.origin);
+      if(u.pathname.startsWith('/api/')){
+        const fx = route(u.pathname, u.search);
+        return reply(fx === undefined ? {} : fx);
+      }
+    }catch(e){ /* fall through to the real network for anything non-/api */ }
+    return real(input, init);
+  };
+})();
+</script>
+{% endif %}
 <div class="app">
   <aside class="side">
     <div class="brand">citepilot</div>
@@ -218,7 +269,14 @@
   </aside>
 
   <div class="main">
+    {% if demo %}
+    <div class="topbar" style="background:#12563a;color:#eaf3ee;border-bottom-color:#0d3f2b;justify-content:space-between">
+      <span>👋 You're viewing an <b>interactive demo</b> with sample data — everything is read-only.</span>
+      <a href="/signup" style="background:#3ecf8e;color:#0f1712;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none;white-space:nowrap">Start for real →</a>
+    </div>
+    {% else %}
     <div class="topbar"><span><b>Live tool</b> — analyze any page against AI citation-readiness signals.</span></div>
+    {% endif %}
     <div class="body">
       <div id="view-analyze" class="view">
       <h1>Analyze a page</h1>
@@ -1546,6 +1604,25 @@ function toggleTheme(){
 }
 $('themeToggle').addEventListener('click', toggleTheme);
 $('themeToggle').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleTheme(); } });
+
+{% if demo %}
+// Demo mode: prefill every tab's inputs with the sample company so each button
+// works in one click, then auto-run Analyze so the landing tab arrives populated.
+(function(){
+  const F = window.DEMO_FIXTURES, set = (id,v)=>{ const el=$(id); if(el) el.value=v; };
+  const U = F.sample_url, C = F.sample_competitor, B = F.sample_brand;
+  ['url','sc-url','rp-url','au-url','ex-url','rw-url'].forEach(id=>set(id,U));
+  set('td-you',U); set('td-them',C);
+  ['c-target','bi-domain','ni-brand','ba-target'].forEach(id=>set(id,B));
+  set('se-brand','Acme');
+  set('ni-keywords','ai visibility, answer engine optimization, brand citations');
+  set('c-queries', F.prompts.prompts.map(p=>p.text).join('\n'));
+  set('se-queries', F.sentiment.results.map(r=>r.query).join('\n'));
+  set('br-q','How do I get my brand cited by ChatGPT?');
+  try{ updateCapNote(); }catch(e){}
+  analyze();
+})();
+{% endif %}
 </script>
 </body>
 </html>
