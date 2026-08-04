@@ -27,6 +27,7 @@ import brandindex
 import brief
 import db
 import export
+import gate
 import generator
 import harness
 import ingest
@@ -194,6 +195,29 @@ def api_analyze():
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:  # keep the UI honest about failures
+        return _server_error(exc)
+
+
+@app.post("/api/gate")
+def api_gate():
+    """CI/API gate: score a URL and report pass/fail against a minimum.
+
+    The dashboard shows the score; this returns a machine verdict for pipelines
+    (also available as the `gate.py` CLI with CI exit codes). Nothing is saved.
+    """
+    data = request.json or {}
+    url = (data.get("url") or "").strip()
+    if not url:
+        return jsonify({"error": "Enter a page URL."}), 400
+    try:
+        minimum = int(data.get("min", gate.DEFAULT_MIN))
+    except (TypeError, ValueError):
+        minimum = gate.DEFAULT_MIN
+    try:
+        return jsonify(gate.run_gate(url, minimum))
+    except ingest.IngestError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
         return _server_error(exc)
 
 
