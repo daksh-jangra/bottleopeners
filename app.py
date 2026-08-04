@@ -26,6 +26,7 @@ import audit
 import brandindex
 import brief
 import db
+import drift
 import export
 import generator
 import harness
@@ -604,6 +605,21 @@ def api_history():
     if not target:
         return jsonify({"error": "Enter a page URL."}), 400
     return jsonify({"target": target, "kind": kind, "runs": db.history(kind, target)})
+
+
+@app.get("/api/drift")
+def api_drift():
+    """Drift Watch: every tracked target's score movement over time, biggest first.
+
+    Optional ?kind= filters to one run kind. Targets with fewer than two scored
+    runs are omitted - there's no movement to show yet.
+    """
+    kind = (request.args.get("kind") or "").strip() or None
+    items = []
+    for t in db.tracked_targets(kind):
+        scores = [h["score"] for h in db.history(t["kind"], t["target"])]
+        items.append({"kind": t["kind"], "target": t["target"], "scores": scores})
+    return jsonify({"movers": drift.rank_movers(items)})
 
 
 def _run_pulse() -> dict[str, Any]:
