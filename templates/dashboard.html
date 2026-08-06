@@ -416,6 +416,12 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
         <div id="se-err" class="err hidden"></div>
         <div id="se-results" class="hidden">
           <div class="card">
+            <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+              <span style="font-size:40px;font-weight:800;line-height:1;color:var(--green)" id="se-mention-rate">0%</span>
+              <div><div style="font-weight:700">Mention rate</div><div class="cur" id="se-mention-note"></div></div>
+            </div>
+          </div>
+          <div class="card">
             <h2>Sentiment mix</h2>
             <div class="mixbar" id="se-mixbar"></div>
             <div class="mixlegend" id="se-legend"></div>
@@ -563,6 +569,7 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
             <option value="analyze">Analyze</option>
             <option value="competitors">Competitors</option>
             <option value="sentiment">Sentiment</option>
+            <option value="mention">Mention rate</option>
             <option value="bvi">Brand Index</option>
           </select>
           <button class="ghost" id="dr-refresh">Refresh</button>
@@ -965,6 +972,9 @@ async function runSentiment(){
   finally{ setBusy($('se-go'), false, 'Run sentiment check'); }
 }
 function renderSentiment(d){
+  const mr = d.mention_rate != null ? d.mention_rate : 0;
+  $('se-mention-rate').textContent = mr + '%';
+  $('se-mention-note').textContent = `of ${d.queries||0} answer${d.queries===1?'':'s'} mention your brand at all - tracked over time in Drift Watch.`;
   const order = ['positive','neutral','negative','not_mentioned'];
   $('se-mixbar').innerHTML = order.map(k=>{
     const pct = (d.mix[k]||{}).pct||0;
@@ -1210,6 +1220,7 @@ function exErr(m){ const e=$('ex-err'); e.textContent=m; e.classList.remove('hid
 const KIND_META = {
   analyze:{label:'Analyze', suffix:'/100'},
   sentiment:{label:'Sentiment', suffix:'% positive'},
+  mention:{label:'Mention rate', suffix:'% mentioned'},
   competitors:{label:'Competitors', suffix:'% cited'},
 };
 async function loadTracked(){
@@ -1477,7 +1488,7 @@ $('se-load-hub').addEventListener('click', e=>loadHubInto('se-queries', e.target
 $('se-save-hub').addEventListener('click', e=>saveToHub($('se-queries').value.split('\n'), e.target));
 
 // --- drift watch tab ---
-const DRIFT_LABELS = {analyze:'Analyze', competitors:'Competitors', sentiment:'Sentiment', bvi:'Brand Index'};
+const DRIFT_LABELS = {analyze:'Analyze', competitors:'Competitors', sentiment:'Sentiment', mention:'Mention rate', bvi:'Brand Index'};
 async function loadDrift(){
   $('dr-err').classList.add('hidden');
   const kind = $('dr-kind').value;

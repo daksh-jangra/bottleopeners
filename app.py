@@ -515,9 +515,15 @@ def api_sentiment():
         return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run sentiment checks."}), 400
     try:
         result = harness.run_sentiment(brand, queries, DEFAULT_MODEL)
-        # Headline number for the trend line: share of answers that were positive.
+        # Two trend lines from one run: positive-sentiment share (feeds the Brand
+        # Index) and mention rate - how often the brand shows up at all. The
+        # latter is tracked as its own kind so it accrues history in Drift Watch.
         positive_pct = result.get("mix", {}).get("positive", {}).get("pct", 0)
         db.save_run("sentiment", brand, positive_pct, result)
+        db.save_run("mention", brand, result.get("mention_rate", 0), {
+            "queries": result.get("queries"),
+            "not_mentioned": result.get("mix", {}).get("not_mentioned", {}).get("count", 0),
+        })
         _snapshot_bvi(brand)
         return jsonify(result)
     except harness.HarnessError as exc:
