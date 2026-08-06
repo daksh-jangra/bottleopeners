@@ -244,6 +244,7 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
         <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
         <a data-view="teardown"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h6"/><path d="M15 12h6"/><path d="M12 3v18"/><path d="m6 8-3 4 3 4"/><path d="m18 8 3 4-3 4"/></svg> Teardown <span class="tag">New</span></a>
         <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
+        <a data-view="persona"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M4 20a5 5 0 0 1 10 0"/><circle cx="17" cy="9" r="2.2"/><path d="M15 20a4 4 0 0 1 6.5-3.1"/></svg> Persona Fan-Out <span class="tag">New</span></a>
         <a data-view="brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 12l4-3"/><circle cx="12" cy="12" r="1.6"/></svg> Brand Index <span class="tag">New</span></a>
       </div>
       <div class="grp">
@@ -427,6 +428,26 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
             <div class="mixlegend" id="se-legend"></div>
           </div>
           <div class="card"><h2>Per question</h2><div id="se-table"></div></div>
+        </div>
+      </div>
+
+      <div id="view-persona" class="view hidden">
+        <h1>Persona Fan-Out</h1>
+        <p class="sub">Ask one question as different customers. A brand that wins the citation for a budget beginner can vanish for an enterprise buyer - this shows where you show up, by audience. Uses Claude and consumes API credit.</p>
+        <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
+          <input id="pf-brand" type="text" placeholder="your brand or domain, e.g. yoursite.com">
+          <input id="pf-query" type="text" placeholder="a question your customers ask, e.g. best way to descale a kettle">
+          <div style="display:flex;gap:8px"><button class="ghost" id="pf-load-hub">Load a question from Hub</button></div>
+          <div id="pf-personas" style="display:flex;flex-wrap:wrap;gap:14px"></div>
+          <div><button class="primary" id="pf-go">Run fan-out</button>
+          <span class="cur" style="margin-left:10px">One live answer per selected persona - a few personas take a minute or two.</span></div>
+        </div>
+        <div id="pf-err" class="err hidden"></div>
+        <div id="pf-results" class="hidden">
+          <div class="card">
+            <h2 id="pf-sum"></h2>
+            <div id="pf-list"></div>
+          </div>
         </div>
       </div>
 
@@ -825,6 +846,7 @@ document.querySelectorAll('nav a[data-view]').forEach(a=>a.addEventListener('cli
   if(a.dataset.view==='monitoring') loadAlerts();
   if(a.dataset.view==='prompts') loadPrompts();
   if(a.dataset.view==='drift') loadDrift();
+  if(a.dataset.view==='persona') buildPersonaChecks();
 }));
 
 // --- rewrite tab ---
@@ -1517,6 +1539,65 @@ function renderDrift(movers){
 }
 $('dr-refresh').addEventListener('click', loadDrift);
 $('dr-kind').addEventListener('change', loadDrift);
+
+// --- persona fan-out tab ---
+const PERSONAS = [
+  {key:'beginner', label:'Budget beginner'},
+  {key:'professional', label:'Quality-focused pro'},
+  {key:'smb', label:'Small-business owner'},
+  {key:'enterprise', label:'Enterprise buyer'},
+  {key:'skeptic', label:'Skeptical researcher'},
+];
+let PERSONA_CHECKS_BUILT = false;
+function buildPersonaChecks(){
+  if(PERSONA_CHECKS_BUILT) return;
+  $('pf-personas').innerHTML = PERSONAS.map(p=>`
+    <label style="display:flex;gap:7px;align-items:center;font-weight:500;cursor:pointer">
+      <input type="checkbox" class="pf-p" value="${p.key}" checked> ${escapeHtml(p.label)}</label>`).join('');
+  PERSONA_CHECKS_BUILT = true;
+}
+async function loadQuestionFromHub(btn){
+  try{
+    const d = await (await fetch('/api/prompts')).json();
+    const texts = (d.prompts||[]).map(p=>p.text);
+    if(!texts.length){ flashBtn(btn,'Hub is empty'); return; }
+    $('pf-query').value = texts[0];
+    flashBtn(btn,'Loaded');
+  }catch(e){ tabErr('pf-err','Network error: '+e.message); }
+}
+async function runPersona(){
+  const brand = $('pf-brand').value.trim();
+  const query = $('pf-query').value.trim();
+  const personas = [...document.querySelectorAll('.pf-p:checked')].map(c=>c.value);
+  if(!brand){ tabErr('pf-err','Enter your brand or domain.'); return; }
+  if(!query){ tabErr('pf-err','Enter a question to fan out.'); return; }
+  if(!personas.length){ tabErr('pf-err','Pick at least one persona.'); return; }
+  $('pf-err').classList.add('hidden'); $('pf-results').classList.add('hidden');
+  setBusy($('pf-go'), true, 'Running…');
+  try{
+    const res = await fetch('/api/persona',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand,query,personas})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('pf-err', data.error||'Failed.'); return; }
+    renderPersona(data);
+  }catch(e){ tabErr('pf-err','Network error: '+e.message); }
+  finally{ setBusy($('pf-go'), false, 'Run fan-out'); }
+}
+function renderPersona(d){
+  const s = d.summary||{};
+  $('pf-sum').textContent = `Cited for ${s.cited||0} of ${s.personas||0} personas · mentioned for ${s.mentioned||0} of ${s.personas||0}`;
+  $('pf-list').innerHTML = (d.rows||[]).map(r=>{
+    const sm = SENTIMENT_META[r.sentiment] || {label:r.sentiment, color:'#64748b'};
+    const cited = r.cited ? '<span style="color:#16a34a;font-weight:700">✓ cited</span>' : '<span class="cur">not cited</span>';
+    return `<div class="item"><div class="item-h">
+      <span><b>${escapeHtml(r.persona)}</b></span>
+      <span style="display:flex;gap:10px;align-items:center">${cited}
+        <span class="pill" style="background:${sm.color}">${escapeHtml(sm.label)}</span></span></div>
+      ${r.evidence?`<p class="cur">“${escapeHtml(r.evidence)}”</p>`:''}</div>`;
+  }).join('');
+  $('pf-results').classList.remove('hidden');
+}
+$('pf-go').addEventListener('click', runPersona);
+$('pf-load-hub').addEventListener('click', e=>loadQuestionFromHub(e.target));
 
 // --- documentation tab ---
 const DOCS = [

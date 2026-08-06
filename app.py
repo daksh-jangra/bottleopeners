@@ -532,6 +532,35 @@ def api_sentiment():
         return _server_error(exc)
 
 
+@app.post("/api/persona")
+def api_persona():
+    """Persona Fan-Out: run one question as several customer personas and report
+    citation + portrayal per persona. Uses Claude, so it consumes API credit."""
+    data = request.json or {}
+    brand = (data.get("brand") or "").strip()
+    query = (data.get("query") or "").strip()
+    keys = data.get("personas") or []
+    if not isinstance(keys, list):
+        keys = []
+
+    if not brand:
+        return jsonify({"error": "Enter your brand or domain."}), 400
+    if not query:
+        return jsonify({"error": "Enter a question to fan out."}), 400
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run persona checks."}), 400
+
+    personas = harness.select_personas([str(k) for k in keys])
+    if not personas:
+        return jsonify({"error": "Pick at least one persona."}), 400
+    try:
+        return jsonify(harness.run_persona_fanout(brand, query, personas, DEFAULT_MODEL))
+    except harness.HarnessError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return _server_error(exc)
+
+
 @app.post("/api/schema")
 def api_schema():
     url = (request.json or {}).get("url", "").strip()
