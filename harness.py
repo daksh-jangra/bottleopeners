@@ -273,6 +273,21 @@ def classify_sentiment(brand: str, answer: str, model: str) -> dict[str, Any]:
         return {"mentioned": False, "sentiment": "not_mentioned", "evidence": ""}
 
 
+def mention_rate(mix: dict[str, Any]) -> int:
+    """Share of answers that mention the brand at all, as a 0-100 percentage.
+
+    100 minus the not-mentioned share - a mention counts regardless of how the
+    brand is portrayed, which is what separates it from citation rate (was the
+    domain linked?) and positive-sentiment share (how it was portrayed). Pure:
+    derived from the sentiment mix counts, so it needs no extra model calls.
+    """
+    total = sum(int(v.get("count", 0)) for v in mix.values())
+    if not total:
+        return 0
+    mentioned = total - int(mix.get("not_mentioned", {}).get("count", 0))
+    return round(100 * mentioned / total)
+
+
 def run_sentiment(brand: str, queries: list[str], model: str) -> dict[str, Any]:
     """For each query: get the AI's answer, then classify brand sentiment. Aggregate a mix."""
     counts = {"positive": 0, "neutral": 0, "negative": 0, "not_mentioned": 0}
@@ -293,7 +308,7 @@ def run_sentiment(brand: str, queries: list[str], model: str) -> dict[str, Any]:
         })
     total = len(queries)
     mix = {k: {"count": v, "pct": round(100 * v / total) if total else 0} for k, v in counts.items()}
-    return {"brand": brand, "queries": total, "mix": mix, "results": results}
+    return {"brand": brand, "queries": total, "mix": mix, "mention_rate": mention_rate(mix), "results": results}
 
 
 # Each provider: label, the env var its key lives in, and a runner (None = not
