@@ -19,11 +19,30 @@ DEFAULT_MODEL = "claude-opus-4-8"
 # default model so it stays representative of a real answer engine.
 CLASSIFIER_MODEL = "claude-haiku-4-5-20251001"
 
+# Google's answer engine, used by the citation harness alongside Claude. It is
+# grounded in Google Search, so it surfaces a different source set than Claude's
+# web search - which is the whole point of testing both.
+#
+# Pinned rather than "gemini-flash-latest": Search grounding bills against its
+# own quota, and the -latest alias points at a newer model whose grounding quota
+# is separate (and zero on some plans), so the alias 429s while this works.
+GEMINI_MODEL = "gemini-2.5-flash"
+
 
 def slugify(value: str) -> str:
     """Turn arbitrary text into a filesystem-safe slug (or 'output' if empty)."""
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
     return slug or "output"
+
+
+def mentions(haystack_lower: str, keyword: str) -> bool:
+    """Whole-word/phrase match, so 'coffee' never trips the 'fee' keyword.
+
+    Both the intent matcher and the hedge scorer match short words against
+    free text, where a plain substring test produces false positives
+    ('may' in 'Mayo', 'today' in 'todays'). Caller lowercases first.
+    """
+    return re.search(rf"\b{re.escape(keyword)}\b", haystack_lower) is not None
 
 
 def load_dotenv(path: str = ".env") -> None:

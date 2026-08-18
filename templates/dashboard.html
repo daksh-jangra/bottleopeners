@@ -305,16 +305,22 @@
 
       <div id="view-competitors" class="view hidden">
         <h1>Competitor citations</h1>
-        <p class="sub">Enter your domain and a few questions your customers ask. We ask Claude each one with live web search and show which sites are winning the citations.</p>
+        <p class="sub">Enter your domain and a few questions your customers ask. We ask each answer engine the same questions with live web search and show which sites are winning the citations - and on which engine.</p>
         <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
           <input id="c-target" type="text" placeholder="your domain, e.g. yoursite.com">
           <textarea id="c-queries" rows="4" placeholder="One question per line, e.g.&#10;how do I descale a coffee maker&#10;best way to remove limescale from a kettle" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
           <div style="display:flex;gap:8px"><button class="ghost" id="c-load-hub">Load from Hub</button><button class="ghost" id="c-save-hub">Save these to Hub</button></div>
+          <div style="display:flex;gap:16px;align-items:center">
+            <span class="cur">Ask:</span>
+            <label class="cur" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="c-eng-claude" checked> Claude</label>
+            <label class="cur" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="c-eng-gemini" checked> Gemini</label>
+          </div>
           <div><button class="primary" id="c-go">Run citation check</button>
-          <span class="cur" style="margin-left:10px">Live web searches - a few queries can take a couple of minutes. Up to 10 questions run per check.</span></div>
+          <span class="cur" style="margin-left:10px">Live web searches - a few queries can take a couple of minutes, and each engine adds a pass. Up to 10 questions run per check.</span></div>
           <div class="cur hidden" id="c-cap-note" style="color:#b45309"></div>
         </div>
         <div id="c-err" class="err hidden"></div>
+        <div class="cur hidden" id="c-skipped" style="color:#b45309;margin-bottom:12px"></div>
         <div id="c-results" class="hidden">
           <div class="card">
             <h2>Your citation rate</h2>
@@ -930,15 +936,31 @@ function renderSentiment(d){
 }
 
 // --- competitors ---
+const ENGINE_META = {
+  claude: {label:'Claude', color:'#7c3aed'},
+  gemini: {label:'Gemini', color:'#2563eb'},
+};
+function engineBadge(name){
+  const meta = ENGINE_META[name] || {label:name, color:'#64748b'};
+  return `<span class="pill" style="background:${meta.color}">${escapeHtml(meta.label)}</span>`;
+}
+function selectedEngines(){
+  const picked = [];
+  if($('c-eng-claude').checked) picked.push('claude');
+  if($('c-eng-gemini').checked) picked.push('gemini');
+  return picked;
+}
 async function runCompetitors(){
   const target = $('c-target').value.trim();
   const queries = $('c-queries').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const engines = selectedEngines();
   if(!target){ cErr('Enter your domain.'); return; }
   if(!queries.length){ cErr('Enter at least one question.'); return; }
-  $('c-err').classList.add('hidden'); $('c-results').classList.add('hidden');
+  if(!engines.length){ cErr('Pick at least one answer engine.'); return; }
+  $('c-err').classList.add('hidden'); $('c-results').classList.add('hidden'); $('c-skipped').classList.add('hidden');
   setBusy($('c-go'), true, 'Running live searches…');
   try{
-    const res = await fetch('/api/competitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,queries})});
+    const res = await fetch('/api/competitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,queries,engines})});
     const data = await res.json();
     if(!res.ok){ cErr(data.error || 'Failed.'); return; }
     renderCompetitors(data);
@@ -947,12 +969,27 @@ async function runCompetitors(){
 }
 function renderCompetitors(d){
   $('c-rate').textContent = d.target_cited + ' / ' + d.queries;
-  $('c-rate-note').textContent = d.target_cited>0
+  const perEngine = (d.engines||[]).map(e=>`${ENGINE_META[e.name]?.label || e.name}: ${e.cited}/${d.queries}`).join(' · ');
+  const headline = d.target_cited>0
     ? `${d.target} was cited for ${d.target_cited} of ${d.queries} queries.`
     : `${d.target} was not cited for any of the ${d.queries} queries - that gap is the opportunity.`;
+  $('c-rate-note').textContent = perEngine ? `${headline} By engine - ${perEngine}.` : headline;
+
+  // A skipped engine means half the answer is missing, so say so rather than
+  // quietly returning a thinner result.
+  const skipped = d.skipped||[];
+  const note = $('c-skipped');
+  if(skipped.length){
+    note.textContent = skipped.map(s=>`${s.label||s.name} did not run: ${s.reason}`).join(' ');
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
+  }
+
   const rows = (d.competitors||[]).filter(c=>!c.is_target).slice(0,15);
   $('c-table').innerHTML = rows.map((c,i)=>`
-    <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(c.domain)}</span>
+    <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(c.domain)}
+    ${(c.engines||[]).map(engineBadge).join(' ')}</span>
     <span class="gain">${c.cited_in}/${d.queries} queries</span></div>${bar(c.cited_in, d.queries)}</div>`).join('')
     || '<p>No competing domains found.</p>';
   $('c-results').classList.remove('hidden');
@@ -1471,8 +1508,9 @@ const DOCS = [
     <p><b>Why they win</b> lists every signal where the competitor scores higher, biggest gap first, each with the fix to apply and the specific problem found on your page. <b>Where you're ahead</b> shows the signals you already lead.</p>
     <p>Free - it reads both pages and reuses the Analyze scorer; no model call. Your page's score is also saved to History.</p>`},
   {id:'competitors', icon:'🏆', title:'Competitors', html:`
-    <p>Enter your domain and a few questions your customers ask. CitePilot asks Claude each question with live web search and shows which domains win the citations, and how often yours does.</p>
-    <p>Slow (live search) and consumes API credit. Results are saved to History.</p>`},
+    <p>Enter your domain and a few questions your customers ask. CitePilot asks each answer engine every question with live web search and shows which domains win the citations, and how often yours does.</p>
+    <p>Two engines ship today - <b>Claude</b> (web search) and <b>Gemini</b> (Google Search grounding). They return noticeably different sources, so a badge on each row shows which engine cited that domain. Untick one to halve the time and cost.</p>
+    <p>Slow (live search) and consumes API credit on every ticked engine. Results are saved to History.</p>`},
   {id:'sentiment', icon:'💬', title:'Sentiment', html:`
     <p>Enter your brand and a few questions. CitePilot gets each AI answer, then classifies whether your brand is mentioned and how it's portrayed - positive, neutral, or negative - with a quoted piece of evidence.</p>
     <p>Two Claude calls per question. Results are saved to History.</p>`},
@@ -1504,8 +1542,9 @@ const DOCS = [
     </ul>
     <p>The dashboard orchestrates them; you can also run any phase alone from the command line.</p>`},
   {id:'keys', icon:'🔑', title:'API keys & cost', html:`
-    <p>Rule-based tabs are free. Model-backed tabs need an Anthropic API key, set in the environment or a gitignored <code>.env</code> file:</p>
-    <p><code>ANTHROPIC_API_KEY=sk-ant-...</code></p>
+    <p>Rule-based tabs are free. Model-backed tabs need API keys, set in the environment or a gitignored <code>.env</code> file:</p>
+    <p><code>ANTHROPIC_API_KEY=sk-ant-...</code><br><code>GEMINI_API_KEY=...</code></p>
+    <p>Anthropic is required. Gemini is optional and only used by Competitors - without it, citation checks run Claude-only and say so.</p>
     <p><b>Free:</b> Analyze, AEO Audit, Schema, Report, History.<br><b>Costs credit:</b> Rewrite, Competitors, Sentiment.</p>`},
 ];
 let docsCurrent = DOCS[0].id;

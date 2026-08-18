@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from common import slugify
+from payload import validate_payload as _validate_payload
 from rules import (
     score_answer_first_structure,
     score_byline_authority,
@@ -22,19 +23,6 @@ from rules import (
     score_list_table_presence,
     score_recency_signals,
 )
-
-REQUIRED_FIELDS = {
-    "source": str,
-    "title": str,
-    "meta_description": (str, type(None)),
-    "headers": list,
-    "body_text": str,
-    "existing_schema": (str, type(None)),
-    "published_date": (str, type(None)),
-    "updated_date": (str, type(None)),
-    "word_count": int,
-}
-
 
 class AnalyzerError(Exception):
     pass
@@ -48,25 +36,9 @@ def _validate_date(value: str, field_name: str) -> None:
 
 
 def validate_payload(payload: Any) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        raise AnalyzerError("Input JSON must be an object.")
-
-    missing = [field for field in REQUIRED_FIELDS if field not in payload]
-    if missing:
-        missing_fields = ", ".join(missing)
-        raise AnalyzerError(f"Input JSON is missing required fields: {missing_fields}")
-
-    for field, expected_type in REQUIRED_FIELDS.items():
-        value = payload[field]
-        if not isinstance(value, expected_type):
-            if field == "meta_description" and value is None:
-                continue
-            if field == "existing_schema" and value is None:
-                continue
-            if field in {"published_date", "updated_date"} and value is None:
-                continue
-            type_name = expected_type if isinstance(expected_type, tuple) else expected_type.__name__
-            raise AnalyzerError(f"Field '{field}' has the wrong type; expected {type_name}.")
+    # The shared contract first; the analyzer is the strictest consumer and
+    # layers its own header/date/count checks on top.
+    _validate_payload(payload, AnalyzerError)
 
     headers = payload["headers"]
     for index, header in enumerate(headers):

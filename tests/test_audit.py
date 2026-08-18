@@ -47,17 +47,22 @@ def test_extract_schema_types_string_and_array():
     assert audit._extract_schema_types(None) == []
 
 
-def test_negative_issue_prefers_a_problem():
-    section = {"issues": [
-        "Author or editorial byline cues were detected.",
-        "No meta description was provided; add one.",
-    ]}
-    assert audit._negative_issue(section) == "No meta description was provided; add one."
+def test_first_issue_returns_the_problem():
+    section = {
+        "issues": ["No meta description was provided; add one."],
+        "notes": ["Author or editorial byline cues were detected."],
+    }
+    assert audit.first_issue(section) == "No meta description was provided; add one."
 
 
-def test_negative_issue_none_when_all_positive():
-    section = {"issues": ["Author cues were detected.", "Table structure was found."]}
-    assert audit._negative_issue(section) is None
+def test_first_issue_ignores_notes_entirely():
+    """Praise lives in notes now, so it can never be mistaken for a problem."""
+    section = {"issues": [], "notes": ["Author cues were detected.", "Table structure was found."]}
+    assert audit.first_issue(section) is None
+
+
+def test_first_issue_none_when_section_has_no_issues_key():
+    assert audit.first_issue({}) is None
 
 
 # --- build_audit shape ------------------------------------------------------

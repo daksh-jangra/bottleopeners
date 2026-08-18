@@ -3,15 +3,22 @@
 Each scorer returns a JSON-serializable dictionary with:
 - score: integer points awarded
 - max: maximum points for the rule
-- issues: actionable flags that explain the score
+- issues: problems only — actionable gaps that cost points
+- notes: observations and positives that explain a good score
+
+The issues/notes split is load-bearing. Consumers that need to show "what is
+wrong with this factor" (audit.py, teardown.py) read issues directly; mixing
+praise into that list forced them to keyword-match their way back out.
 """
 
 from __future__ import annotations
 
 import math
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
+
+from common import mentions
 
 HEADER_MAX_SCORE = 20
 ANSWER_FIRST_MAX_SCORE = 20
@@ -71,17 +78,6 @@ ANSWER_FIRST_HEDGES = (
     "usually",
 )
 
-AUTHOR_CUES = (
-    "written by",
-    " by ",
-    "author",
-    "edited by",
-    "contributor",
-    "staff writer",
-    "editorial team",
-    "publisher",
-)
-
 ORG_CUES = (
     "inc",
     "llc",
@@ -108,8 +104,25 @@ DATE_PATTERNS = (
 )
 
 
-def _component(score: int, max_score: int, issues: list[str]) -> dict[str, Any]:
-    return {"score": max(0, min(max_score, int(score))), "max": max_score, "issues": issues}
+def _component(
+    score: int,
+    max_score: int,
+    issues: list[str],
+    notes: list[str] | None = None,
+) -> dict[str, Any]:
+    """One factor's result.
+
+    `issues` are problems only; `notes` are observations and praise. Keeping
+    them apart here is what lets audit.py and teardown.py pick "the problem"
+    off a weak factor without guessing at the wording. They used to share one
+    list, and downstream had to keyword-match its way back out.
+    """
+    return {
+        "score": max(0, min(max_score, int(score))),
+        "max": max_score,
+        "issues": issues,
+        "notes": notes or [],
+    }
 
 
 def _normalize(text: str) -> str:
@@ -144,13 +157,47 @@ def _looks_descriptive_header(text: str) -> bool:
     return any(lowered.startswith(opener) for opener in HEADING_OPENERS) or len(lowered.split()) >= 3
 
 
+# A run of title-case words ("New York", "Acme Corp"). Ambiguous at the start of
+# a sentence, where ordinary prose is capitalized too ("Every Monday the team").
+TITLE_CASE_RUN = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b")
+# Internal capitals are unambiguous wherever they appear: iPhone, eBay, macOS.
+INTERNAL_CAPS_TOKEN = re.compile(r"\b[a-z]+[A-Z][A-Za-z]*\b")
+# Acronyms: NASA, IBM, GDPR. Also position-independent.
+ACRONYM_TOKEN = re.compile(r"\b[A-Z]{2,}[A-Za-z]*\b")
+
+
+def _starts_sentence(text: str, start: int) -> bool:
+    prefix = text[:start].rstrip()
+    return not prefix or prefix[-1] in ".!?"
+
+
 def _detect_named_entity_phrases(text: str) -> list[str]:
-    candidates = re.findall(r"\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b", text)
-    filtered: list[str] = []
-    for candidate in candidates:
-        if candidate not in filtered:
-            filtered.append(candidate)
-    return filtered
+    """Named entities in the body text, feeding factual specificity.
+
+    Title-case runs only count mid-sentence. At a sentence boundary "Acme Corp
+    shipped units" and "Every Monday the team met" are indistinguishable
+    without a lexicon, and a false entity inflates the very score this feeds —
+    so the ambiguous ones are dropped rather than guessed at. Single-token
+    brands are matched separately, since capitalization inside a word
+    ("iPhone") or across it ("NASA") is a real signal at any position.
+
+    ponytail: no brand lexicon. A known-name list would recover the
+    sentence-initial entities this deliberately drops; add one if scores read
+    as too harsh on entity-heavy pages.
+    """
+    found: list[str] = []
+
+    def add(value: str) -> None:
+        if value not in found:
+            found.append(value)
+
+    for match in TITLE_CASE_RUN.finditer(text):
+        if not _starts_sentence(text, match.start()):
+            add(match.group())
+    for pattern in (INTERNAL_CAPS_TOKEN, ACRONYM_TOKEN):
+        for match in pattern.finditer(text):
+            add(match.group())
+    return found
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -219,7 +266,7 @@ def score_answer_first_structure(payload: dict[str, Any]) -> dict[str, Any]:
     lead_sentences = sentences[:2]
     lead_text = " ".join(lead_sentences).lower()
 
-    if any(phrase in lead_text for phrase in ANSWER_FIRST_HEDGES):
+    if any(mentions(lead_text, phrase) for phrase in ANSWER_FIRST_HEDGES):
         issues.append("The opening sentences use narrative or hedging language instead of a direct answer.")
         score -= 6
 
@@ -258,6 +305,7 @@ def _structure_count(payload: dict[str, Any], field: str) -> int:
 def score_list_table_presence(payload: dict[str, Any]) -> dict[str, Any]:
     body_text = str(payload["body_text"])
     issues: list[str] = []
+    notes: list[str] = []
 
     score = 0
     numbered_items = len(re.findall(r"\b\d+[\).]\s+\w+", body_text))
@@ -276,25 +324,25 @@ def score_list_table_presence(payload: dict[str, Any]) -> dict[str, Any]:
     evidence = 0
     if list_count >= 1 or numbered_items >= 2 or bullet_markers >= 2:
         evidence += 1
-        issues.append("List structure was found; this helps AI extract discrete points.")
+        notes.append("List structure was found; this helps AI extract discrete points.")
     if list_count >= 2 or (numbered_items >= 2 and bullet_markers >= 2):
         evidence += 1
-        issues.append("Multiple distinct lists were found; keep list structure explicit.")
+        notes.append("Multiple distinct lists were found; keep list structure explicit.")
     if colon_pairs >= 3:
         evidence += 1
-        issues.append("Key-value style patterns suggest a tabular or fact-dense layout.")
+        notes.append("Key-value style patterns suggest a tabular or fact-dense layout.")
     if table_count >= 1 or pipe_tables >= 2:
         evidence += 1
-        issues.append("Table structure was found; tables are highly citable by AI answers.")
+        notes.append("Table structure was found; tables are highly citable by AI answers.")
     if list_count >= 2 and table_count >= 1:
         # Multiple real lists plus a real table is comprehensive structure on its
         # own; credit it deterministically rather than relying on the fuzzy
         # colon/semicolon text heuristics, which vary with flattened body text.
         evidence += 1
-        issues.append("Content combines multiple lists with a table; this is strong, citable structure.")
+        notes.append("Content combines multiple lists with a table; this is strong, citable structure.")
     if semicolon_runs >= 3 and compact_lines >= 4:
         evidence += 1
-        issues.append("Dense clause-separated formatting may indicate a list or table that is still readable.")
+        notes.append("Dense clause-separated formatting may indicate a list or table that is still readable.")
 
     if evidence == 0:
         issues.append("No strong list or table patterns were detected in the body text.")
@@ -307,13 +355,14 @@ def score_list_table_presence(payload: dict[str, Any]) -> dict[str, Any]:
     else:
         score = LIST_TABLE_MAX_SCORE
 
-    return _component(score, LIST_TABLE_MAX_SCORE, issues)
+    return _component(score, LIST_TABLE_MAX_SCORE, issues, notes)
 
 
 def score_factual_specificity(payload: dict[str, Any]) -> dict[str, Any]:
     body_text = str(payload["body_text"])
     word_count = int(payload["word_count"])
     issues: list[str] = []
+    notes: list[str] = []
 
     if word_count <= 0:
         return _component(0, FACTUAL_SPECIFICITY_MAX_SCORE, ["Word count is zero; factual specificity cannot be measured reliably."])
@@ -348,9 +397,9 @@ def score_factual_specificity(payload: dict[str, Any]) -> dict[str, Any]:
         score = min(FACTUAL_SPECIFICITY_MAX_SCORE, score + 2)
 
     if score >= 12 and len(numbers) + len(dates) + len(entities) > 0:
-        issues.append("The content includes multiple concrete facts that are easier to cite and verify.")
+        notes.append("The content includes multiple concrete facts that are easier to cite and verify.")
 
-    return _component(score, FACTUAL_SPECIFICITY_MAX_SCORE, issues)
+    return _component(score, FACTUAL_SPECIFICITY_MAX_SCORE, issues, notes)
 
 
 def score_byline_authority(payload: dict[str, Any]) -> dict[str, Any]:
@@ -359,21 +408,26 @@ def score_byline_authority(payload: dict[str, Any]) -> dict[str, Any]:
     existing_schema = payload["existing_schema"]
     body_text = str(payload["body_text"])
     issues: list[str] = []
+    notes: list[str] = []
 
     score = 0
     meta_text = str(meta_description or "")
     schema_text = str(existing_schema or "")
     combined = f"{title} {meta_text} {schema_text} {body_text[:500]}".lower()
 
-    if any(cue in combined for cue in AUTHOR_CUES):
+    # Read the author the page declares, rather than inferring one from prose.
+    # Optional field: payloads ingested before it existed score as "no author",
+    # which is the honest answer for a page whose authorship we never read.
+    author = payload.get("author")
+    if isinstance(author, str) and author.strip():
         score += 5
-        issues.append("Author or editorial byline cues were detected.")
+        notes.append(f"An author is declared on the page: {author.strip()}.")
     else:
-        issues.append("No author/byline cues were found in the title, meta description, body, or schema.")
+        issues.append("No author is declared in the page metadata or schema; add a byline the page states explicitly.")
 
     if any(cue in combined for cue in ORG_CUES):
         score += 4
-        issues.append("Organization or publisher cues were detected in the title, meta description, or schema.")
+        notes.append("Organization or publisher cues were detected in the title, meta description, or schema.")
     else:
         issues.append("No clear organization or publisher signal was found in the title or meta description.")
 
@@ -397,13 +451,14 @@ def score_byline_authority(payload: dict[str, Any]) -> dict[str, Any]:
     if score == 0:
         score = 1 if meta_text else 0
 
-    return _component(score, BYLINE_AUTHORITY_MAX_SCORE, issues)
+    return _component(score, BYLINE_AUTHORITY_MAX_SCORE, issues, notes)
 
 
 def score_recency_signals(payload: dict[str, Any]) -> dict[str, Any]:
     published_date = _parse_date(payload["published_date"])
     updated_date = _parse_date(payload["updated_date"])
     issues: list[str] = []
+    notes: list[str] = []
 
     if not published_date and not updated_date:
         return _component(0, RECENCY_MAX_SCORE, ["No published or updated date was found; add a date signal for recency-aware citations."])
@@ -413,7 +468,9 @@ def score_recency_signals(payload: dict[str, Any]) -> dict[str, Any]:
         effective_date = updated_date
 
     assert effective_date is not None
-    age_days = max(0, (date.today() - effective_date).days)
+    # UTC, to match db.now_iso(). A local date would compute decay against a
+    # different day than the one the run is recorded under, near midnight.
+    age_days = max(0, (datetime.now(timezone.utc).date() - effective_date).days)
     decay_factor = math.exp(-(age_days / RECENCY_HALF_LIFE_DAYS) * math.log(2))
     score = int(round(RECENCY_MAX_SCORE * decay_factor))
 
@@ -421,7 +478,7 @@ def score_recency_signals(payload: dict[str, Any]) -> dict[str, Any]:
         if published_date and updated_date < published_date:
             issues.append("Updated date is earlier than the published date; verify the dates are correct.")
         else:
-            issues.append("Updated date is present, which improves freshness signals.")
+            notes.append("Updated date is present, which improves freshness signals.")
     elif published_date:
         issues.append("Only a published date is present; adding an updated date would strengthen freshness signals.")
 
@@ -430,4 +487,4 @@ def score_recency_signals(payload: dict[str, Any]) -> dict[str, Any]:
     elif age_days > 365:
         issues.append("The content is over a year old; recency score is reduced.")
 
-    return _component(score, RECENCY_MAX_SCORE, issues)
+    return _component(score, RECENCY_MAX_SCORE, issues, notes)

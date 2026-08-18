@@ -10,19 +10,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 from common import slugify
+from payload import validate_payload as _validate_payload
 from templates import build_article_schema, build_faq_schema, build_howto_schema
-
-REQUIRED_FIELDS = {
-    "source": str,
-    "title": str,
-    "meta_description": (str, type(None)),
-    "headers": list,
-    "body_text": str,
-    "existing_schema": (str, type(None)),
-    "published_date": (str, type(None)),
-    "updated_date": (str, type(None)),
-    "word_count": int,
-}
 
 QUESTION_PREFIXES = ("what", "why", "how", "when", "where", "who", "which", "can", "do", "does", "is", "are", "should", "will")
 
@@ -36,22 +25,7 @@ def normalize_whitespace(text: str) -> str:
 
 
 def validate_payload(payload: Any) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        raise GeneratorError("Input JSON must be an object.")
-
-    missing = [field for field in REQUIRED_FIELDS if field not in payload]
-    if missing:
-        raise GeneratorError(f"Input JSON is missing required fields: {', '.join(missing)}")
-
-    for field, expected_type in REQUIRED_FIELDS.items():
-        value = payload[field]
-        if not isinstance(value, expected_type):
-            if field in {"meta_description", "existing_schema", "published_date", "updated_date"} and value is None:
-                continue
-            type_name = expected_type if isinstance(expected_type, tuple) else expected_type.__name__
-            raise GeneratorError(f"Field '{field}' has the wrong type; expected {type_name}.")
-
-    return payload
+    return _validate_payload(payload, GeneratorError)
 
 
 def load_input(path: str) -> dict[str, Any]:

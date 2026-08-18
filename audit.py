@@ -56,19 +56,16 @@ def _ratio_status(score: int, max_score: int) -> str:
     return FAIL
 
 
-# The rubric's "issues" list mixes praise ("Author cues were detected") with
-# real problems. On a warn/fail row we want the problem, so prefer an issue that
-# reads like a gap; fall back to the factor's fix hint if every issue is praise.
-NEGATIVE_MARKERS = (
-    "no ", "not ", "missing", "vague", "add ", "lacks", "too ", "jump",
-    "duplicate", "only ", "reduce", "verify", "repeats", "generic",
-    "delayed", "buildup", "hedging", "narrative", "short and", "closely", "decay",
-)
+def first_issue(section: dict[str, Any]) -> Optional[str]:
+    """The factor's first real problem, or None if it has none.
 
-
-def _negative_issue(section: dict[str, Any]) -> Optional[str]:
+    rules._component() keeps problems in `issues` and praise in `notes`, so
+    this is a plain read. Analyses persisted before that split may still carry
+    praise in `issues`; those rows degrade to a slightly odd detail string
+    rather than failing.
+    """
     for issue in section.get("issues", []):
-        if isinstance(issue, str) and any(m in issue.lower() for m in NEGATIVE_MARKERS):
+        if isinstance(issue, str) and issue.strip():
             return issue
     return None
 
@@ -198,7 +195,7 @@ def _content_rows(analysis: dict[str, Any]) -> list[dict[str, Any]]:
         if status == PASS:
             detail = pass_detail
         else:
-            detail = _negative_issue(section) or fix_detail
+            detail = first_issue(section) or fix_detail
         detail = f"{detail} ({score}/{max_score} pts)"
         # Rewrite can fix every content factor except freshness — the tool
         # never invents a date, so that one stays advice-only.

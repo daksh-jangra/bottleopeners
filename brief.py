@@ -17,6 +17,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from common import mentions
 from rubric import FACTOR_LABELS, RECOMMENDATIONS
 
 # Each intent: a detector keyword set, a human label, the Schema.org type that
@@ -81,16 +82,11 @@ DEFAULT_INTENT: dict[str, Any] = {
 }
 
 
-def _mentions(question_lower: str, keyword: str) -> bool:
-    """Whole-word/phrase match, so 'coffee' never trips the 'fee' keyword."""
-    return re.search(rf"\b{re.escape(keyword)}\b", question_lower) is not None
-
-
 def detect_intent(question: str) -> dict[str, Any]:
     """Match a question to the first intent whose keywords appear in it."""
     q = question.lower().strip()
     for intent in INTENTS:
-        if any(_mentions(q, kw) for kw in intent["keywords"]):
+        if any(mentions(q, kw) for kw in intent["keywords"]):
             return intent
     return DEFAULT_INTENT
 

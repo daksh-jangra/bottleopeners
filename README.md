@@ -18,9 +18,14 @@ pip install -r requirements.txt
 Model-backed features (rewrite, citation test, sentiment) need an API key:
 
 ```bash
-# either export it, or put it in a gitignored .env file as ANTHROPIC_API_KEY=...
+# either export these, or put them in a gitignored .env file as KEY=value
 export ANTHROPIC_API_KEY=sk-ant-...
+export GEMINI_API_KEY=...          # optional - adds Gemini to citation checks
 ```
+
+`GEMINI_API_KEY` is optional. With it, a citation check asks both Claude and
+Gemini every question and reports which engine cited whom; without it, checks
+run Claude-only and say which engine was skipped and why.
 
 ## The dashboard
 

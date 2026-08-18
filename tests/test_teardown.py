@@ -80,7 +80,8 @@ def test_your_issue_surfaces_a_problem_from_your_page():
 
 
 def test_your_issue_is_none_when_no_problem_listed():
-    you = analysis({"header_quality": 0}, issues={"header_quality": ["Clean heading hierarchy detected."]})
+    """A factor with nothing wrong has an empty issues list, not praise in it."""
+    you = analysis({"header_quality": 0}, issues={"header_quality": []})
     them = analysis({"header_quality": 20})
     gap = teardown.compare(you, them)["gaps"][0]
     assert gap["your_issue"] is None
