@@ -656,6 +656,37 @@ def api_tracked():
     return jsonify({"targets": db.tracked_targets()})
 
 
+@app.get("/api/overview")
+def api_overview():
+    """Workspace snapshot for the KPI header row: a Brand Visibility Index
+    (mean of each domain's latest analyze score), the latest mention rate,
+    how many distinct pages have been analyzed, and the last activity time.
+    Every field degrades to null when there is no data yet."""
+    analyze_runs = db.runs_by_kind("analyze")
+    mention_runs = db.runs_by_kind("mention")
+
+    latest_by_target: dict[str, int] = {}
+    for run in analyze_runs:  # newest-first, so the first score per target wins
+        score = run.get("score")
+        if run["target"] not in latest_by_target and score is not None:
+            latest_by_target[run["target"]] = score
+    bvi = round(sum(latest_by_target.values()) / len(latest_by_target)) if latest_by_target else None
+
+    mention_rate = next((r["score"] for r in mention_runs if r.get("score") is not None), None)
+
+    all_times = [r["created_at"] for r in (analyze_runs + mention_runs
+                 + db.runs_by_kind("competitors") + db.runs_by_kind("sentiment"))
+                 if r.get("created_at")]
+    last_pulse = max(all_times) if all_times else None
+
+    return jsonify({
+        "bvi": bvi,
+        "mention_rate": mention_rate,
+        "pages_analyzed": len(latest_by_target),
+        "last_pulse": last_pulse,
+    })
+
+
 @app.post("/api/history")
 def api_history():
     data = request.json or {}

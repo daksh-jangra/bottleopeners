@@ -167,6 +167,121 @@
   .themerow .switch i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
   [data-theme="dark"] .themerow .switch{background:var(--green)}
   [data-theme="dark"] .themerow .switch i{left:18px}
+
+  /* ============================================================
+     EDITORIAL RESTYLE (archdrift-inspired) — airy light theme,
+     oversized condensed stat numbers, tracked all-caps micro-labels,
+     hairline flat cards. Layered over the base styles above so all
+     tabs adopt the new language without markup changes.
+     ============================================================ */
+  /* Condensed display face. Prefers a bundled Archivo Narrow (drop the file at
+     static/fonts/ and it loads automatically); otherwise falls back to the
+     platform condensed cut via font-stretch on the number classes below. */
+  @font-face{
+    font-family:"Archivo Narrow";font-style:normal;font-weight:700;
+    font-display:swap;src:url("/static/fonts/ArchivoNarrow-Bold.woff2") format("woff2");
+  }
+  :root{
+    --bg:#fbfbf9; --panel:#ffffff; --line:#ececea; --ink:#141a16;
+    --muted:#8b938d; --track:#eef1ee;
+    --display:"Archivo Narrow","Helvetica Neue",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --caps:.13em;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1310; --panel:#141a16; --line:#232c27; --ink:#e9efeb;
+    --muted:#8a978f; --track:#232c27;
+  }
+  body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+  /* --- hairline, roomy cards; drop any heavy fills --- */
+  .card,.searchcard{border-radius:16px;padding:26px}
+  .card{margin-bottom:16px}
+  .auditsum .s{border-radius:14px;padding:18px 20px}
+
+  /* --- tracked all-caps micro-labels --- */
+  h2,.catname,.h2sm,.result-head .lbl,.auditsum .s small,
+  .mixlegend small,.result-head .src{
+    text-transform:uppercase;letter-spacing:var(--caps);font-weight:700}
+  h2{font-size:11.5px;color:var(--muted)}
+  .auditsum .s small{font-size:10px;letter-spacing:var(--caps)}
+
+  /* --- oversized, tight, tabular display numbers (the hero move) --- */
+  .score,.auditsum .s b,.mixlegend b,.gauge .num,.kpi-num{
+    font-family:var(--display);font-weight:800;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;line-height:.92;font-stretch:condensed}
+  .score{font-size:58px}
+  .score small{font-size:17px;letter-spacing:0;font-weight:500}
+  .auditsum .s b{font-size:42px;margin-bottom:4px}
+  .mixlegend b{font-size:30px}
+  .gauge .num{font-size:52px}
+
+  /* --- softer grade block, less candy --- */
+  .grade{border-radius:14px;font-weight:800;letter-spacing:-.02em}
+
+  /* --- sidebar: left accent bar on active, quieter labels --- */
+  nav a{border-radius:10px}
+  nav a.active{background:transparent;box-shadow:inset 3px 0 0 var(--green);border-radius:0 10px 10px 0}
+  [data-theme="dark"] nav a.active{background:transparent}
+  .side nav .lbl{letter-spacing:var(--caps);opacity:.7}
+
+  /* --- calmer top breadcrumb bar --- */
+  .topbar{background:transparent;border-bottom:1px solid var(--line)}
+  [data-theme="dark"] .topbar{background:transparent}
+
+  /* --- segmented provider pills: tighter, squarer --- */
+  .chip{font-size:13px;padding:7px 15px;border-radius:9px;font-weight:600}
+
+  /* --- inputs & primary button: match the flatter language --- */
+  .searchcard input,input,textarea{border-radius:10px}
+  button.primary{border-radius:10px;letter-spacing:.01em}
+
+  /* --- faint graph-paper dot grid behind cards (archdrift signature) --- */
+  .card{
+    background-color:var(--panel);
+    background-image:radial-gradient(var(--line) .9px,transparent .9px);
+    background-size:22px 22px;
+    background-position:-1px -1px;
+    box-shadow:0 1px 2px rgba(20,26,22,.04);
+  }
+  [data-theme="dark"] .card{box-shadow:none}
+  /* keep the dot grid off inner/nested cards so text stays crisp */
+  .card .card{background-image:none;box-shadow:none}
+
+  /* --- crank the hero numbers bigger + more condensed --- */
+  .score{font-size:66px;letter-spacing:-.045em}
+  .gauge .num{font-size:60px;letter-spacing:-.04em}
+  .auditsum .s b{font-size:48px}
+  .gauge .cap{letter-spacing:.22em;font-weight:800}
+
+  /* --- stronger, roomier stat cards with a hairline divider feel --- */
+  .auditsum{gap:12px}
+  .auditsum .s{padding:20px 22px;box-shadow:0 1px 2px rgba(20,26,22,.04)}
+  .auditsum .s small{font-size:9.5px;letter-spacing:.16em;opacity:.85}
+
+  /* --- section labels: smaller, wider, more editorial --- */
+  h2,.result-head .lbl,.h2sm{font-size:10.5px;letter-spacing:.16em}
+
+  /* --- top KPI stat-card row (archdrift Analytics header) --- */
+  .kpirow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 26px}
+  @media(max-width:860px){.kpirow{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:440px){.kpirow{grid-template-columns:1fr}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;box-shadow:0 1px 2px rgba(20,26,22,.04);
+    display:flex;flex-direction:column}
+  [data-theme="dark"] .kpi{box-shadow:none}
+  /* reserve a fixed 2-line label height so every big number starts on the
+     same baseline regardless of how the label wraps */
+  .kpi-lbl{font-size:9.5px;letter-spacing:.12em;line-height:1.35;
+    text-transform:uppercase;color:var(--muted);font-weight:700;
+    min-height:2.7em;margin-bottom:10px}
+  .kpi-num{font-size:46px}
+  /* pin the sub-caption to the bottom so cards read as one aligned band */
+  .kpi-sub{margin-top:auto;padding-top:9px}
+  .kpi-num.kpi-date{font-size:30px;letter-spacing:-.02em}
+  .kpi-den{font-size:16px;font-weight:600;color:var(--muted);letter-spacing:0;
+    margin-left:4px;font-stretch:normal}
+  .kpi-sub{font-size:11.5px;color:var(--muted);margin-top:9px}
+  .kpi-delta{color:var(--green);font-weight:700}
 </style>
 </head>
 <body>
@@ -280,6 +395,28 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
     <div class="topbar"><span><b>Live tool</b> — analyze any page against AI citation-readiness signals.</span></div>
     {% endif %}
     <div class="body">
+      <div class="kpirow" id="kpirow">
+        <div class="kpi">
+          <div class="kpi-lbl">Brand Index</div>
+          <div class="kpi-num" id="kpi-bvi">—<span class="kpi-den">/100</span></div>
+          <div class="kpi-sub" id="kpi-bvi-sub">no runs yet</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Mention Rate</div>
+          <div class="kpi-num" id="kpi-mention">—<span class="kpi-den">%</span></div>
+          <div class="kpi-sub" id="kpi-mention-sub">latest sentiment run</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Pages Analyzed</div>
+          <div class="kpi-num" id="kpi-runs">—</div>
+          <div class="kpi-sub" id="kpi-runs-sub">across your workspace</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Last Pulse</div>
+          <div class="kpi-num kpi-date" id="kpi-pulse">—</div>
+          <div class="kpi-sub" id="kpi-pulse-sub">no activity yet</div>
+        </div>
+      </div>
       <div id="view-analyze" class="view">
       <h1>Analyze a page</h1>
       <p class="sub">Paste a URL. We read the page, score how quotable it is to AI answer engines, and show the fixes ranked by impact.</p>
@@ -750,6 +887,7 @@ async function analyze(){
     const data = await res.json();
     if(!res.ok){ showErr(data.error || 'Analysis failed.'); return; }
     render(data);
+    loadOverview();
   }catch(e){ showErr('Network error: '+e.message); }
   finally{ setBusy($('go'), false, 'Analyze'); }
 }
@@ -1367,6 +1505,28 @@ async function clearAlerts(){
 $('mo-pulse').addEventListener('click', runMonitorPulse);
 $('mo-clear').addEventListener('click', clearAlerts);
 refreshAlertBadge();
+
+// --- top KPI header row: workspace snapshot ---
+function fmtPulse(iso){
+  if(!iso) return '—';
+  const d = new Date(iso.replace(' ','T'));
+  if(isNaN(d)) return String(iso).slice(0,10);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+async function loadOverview(){
+  try{
+    const o = await (await fetch('/api/overview')).json();
+    $('kpi-bvi').innerHTML = (o.bvi==null?'—':o.bvi) + '<span class="kpi-den">/100</span>';
+    $('kpi-bvi-sub').textContent = o.pages_analyzed ? 'mean of latest page scores' : 'no runs yet';
+    $('kpi-mention').innerHTML = (o.mention_rate==null?'—':o.mention_rate) + '<span class="kpi-den">%</span>';
+    $('kpi-mention-sub').textContent = o.mention_rate==null ? 'run Sentiment to populate' : 'latest sentiment run';
+    $('kpi-runs').textContent = o.pages_analyzed || '—';
+    $('kpi-runs-sub').textContent = 'distinct pages across your workspace';
+    $('kpi-pulse').textContent = fmtPulse(o.last_pulse);
+    $('kpi-pulse-sub').textContent = o.last_pulse ? 'most recent activity' : 'no activity yet';
+  }catch(e){ /* leave the placeholder dashes on error */ }
+}
+loadOverview();
 
 // --- site-wide (batch) tab ---
 async function runBatch(){
