@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign up · citepilot</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #17201b; -webkit-font-smoothing: antialiased; }
+  ::selection { background: #1b5e40; color: #fff; }
+  a { color: #1b5e40; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+
+  .left { background: #f1f1ee; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #1b5e40; margin-bottom: 26px; }
+  .brand .mark { width: 30px; height: 30px; border-radius: 9px; background: #1b5e40; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .card { width: 100%; max-width: 400px; background: #fff; border: 1px solid #e4e4df; border-radius: 18px; box-shadow: 0 24px 60px -34px rgba(23,32,27,0.45); overflow: hidden; }
+  .card-body { padding: 34px 32px 30px; }
+  h1 { font-size: 23px; font-weight: 800; letter-spacing: -0.6px; margin: 0 0 6px; text-align: center; }
+  .sub { font-size: 14px; color: #5c635d; margin: 0 0 24px; text-align: center; }
+  .oauth { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; font-size: 14.5px; font-weight: 600; font-family: inherit; background: #fff; color: #17201b; border: 1px solid #d9dcd6; padding: 12px; border-radius: 11px; cursor: pointer; transition: background 0.15s; }
+  .oauth:hover { background: #f6f6f3; }
+  .divider { display: flex; align-items: center; gap: 14px; margin: 20px 0; color: #9aa09a; font-size: 12px; letter-spacing: 0.5px; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e8e8e2; }
+  label { display: block; font-size: 13px; font-weight: 600; color: #3d453f; margin: 0 0 7px; }
+  .field { margin-bottom: 16px; }
+  input { width: 100%; font-size: 15px; font-family: inherit; padding: 12px 14px; border: 1px solid #d9dcd6; border-radius: 11px; background: #f9f9f7; color: #17201b; }
+  input:focus { outline: none; border-color: #1b5e40; background: #fff; box-shadow: 0 0 0 3px rgba(27,94,64,0.12); }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; font-size: 15px; font-weight: 700; font-family: inherit; background: #1b5e40; color: #fff; border: none; padding: 13px; border-radius: 11px; cursor: pointer; transition: background 0.15s; margin-top: 4px; }
+  .btn:hover { background: #164e35; }
+  .terms { font-size: 11.5px; color: #9aa09a; text-align: center; margin: 14px 0 0; line-height: 1.5; }
+  .card-foot { border-top: 1px solid #eee; padding: 18px; text-align: center; font-size: 13.5px; color: #5c635d; background: #fbfbfa; }
+  .secured { padding: 12px; text-align: center; font-size: 11.5px; color: #b3b8b2; background: #fbfbfa; }
+  .back { margin-top: 24px; font-size: 13px; color: #8a8f89; }
+  .back a { color: #5c635d; }
+
+  .right { background: #12261c; color: #eef1ee; padding: 56px 56px; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
+  .right::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 80% at 80% 0%, rgba(62,207,142,0.16), transparent 60%); pointer-events: none; }
+  .eyebrow { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #7fae95; }
+  .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #3ecf8e; }
+  .headline { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1.15; margin: 26px 0 30px; max-width: 12em; }
+  .perks { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px; }
+  .perks li { display: flex; align-items: flex-start; gap: 12px; font-size: 15.5px; color: #cdd6d0; }
+  .perks .tick { flex: none; width: 22px; height: 22px; border-radius: 50%; background: rgba(62,207,142,0.16); color: #3ecf8e; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-top: 1px; }
+  .perks b { color: #eef1ee; font-weight: 700; }
+
+  @media (max-width: 860px) {
+    .split { grid-template-columns: 1fr; }
+    .right { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="split">
+    <div class="left">
+      <a href="/" class="brand"><span class="mark">✦</span> citepilot</a>
+      <div class="card">
+        <div class="card-body">
+          <h1>Create your account</h1>
+          <p class="sub">Start free — 50 scans a month, no card required.</p>
+
+          <form method="post" action="/signup">
+            <button class="oauth" type="submit" formaction="/app" formmethod="get">
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Sign up with Google
+            </button>
+
+            <div class="divider">OR</div>
+
+            <div class="field">
+              <label for="name">Full name</label>
+              <input id="name" name="name" type="text" autocomplete="name" placeholder="Alex Rivera" required>
+            </div>
+            <div class="field">
+              <label for="email">Email address</label>
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="you@company.com" required>
+            </div>
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" required>
+            </div>
+
+            <button class="btn" type="submit">Create account &nbsp;›</button>
+            <p class="terms">By creating an account you agree to citepilot's Terms & Privacy Policy.</p>
+          </form>
+        </div>
+        <div class="card-foot">Already have an account? <a href="/signin">Sign in</a></div>
+        <div class="secured">🔒 Secured sign-up · citepilot</div>
+      </div>
+      <div class="back"><a href="/demo">← Explore the demo first</a></div>
+    </div>
+
+    <div class="right">
+      <div class="eyebrow"><span class="dot"></span> Answer Engine Optimization</div>
+      <h2 class="headline">See what AI already thinks of your pages.</h2>
+      <ul class="perks">
+        <li><span class="tick">✓</span><span>Score any page 0&ndash;100 on the <b>six signals</b> AI answer engines lean on.</span></li>
+        <li><span class="tick">✓</span><span>Get the <b>fixes ranked by impact</b> — schema, citations, rewrites.</span></li>
+        <li><span class="tick">✓</span><span>Track your <b>brand visibility</b> across ChatGPT, Claude, Perplexity & Gemini.</span></li>
+        <li><span class="tick">✓</span><span><b>50 free scans</b> a month. No card required.</span></li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

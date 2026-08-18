@@ -354,6 +354,21 @@ def classify_sentiment(brand: str, answer: str, model: str) -> dict[str, Any]:
         return {"mentioned": False, "sentiment": "not_mentioned", "evidence": ""}
 
 
+def mention_rate(mix: dict[str, Any]) -> int:
+    """Share of answers that mention the brand at all, as a 0-100 percentage.
+
+    100 minus the not-mentioned share - a mention counts regardless of how the
+    brand is portrayed, which is what separates it from citation rate (was the
+    domain linked?) and positive-sentiment share (how it was portrayed). Pure:
+    derived from the sentiment mix counts, so it needs no extra model calls.
+    """
+    total = sum(int(v.get("count", 0)) for v in mix.values())
+    if not total:
+        return 0
+    mentioned = total - int(mix.get("not_mentioned", {}).get("count", 0))
+    return round(100 * mentioned / total)
+
+
 def run_sentiment(brand: str, queries: list[str], model: str) -> dict[str, Any]:
     """For each query: get the AI's answer, then classify brand sentiment. Aggregate a mix."""
     counts = {"positive": 0, "neutral": 0, "negative": 0, "not_mentioned": 0}
@@ -374,7 +389,80 @@ def run_sentiment(brand: str, queries: list[str], model: str) -> dict[str, Any]:
         })
     total = len(queries)
     mix = {k: {"count": v, "pct": round(100 * v / total) if total else 0} for k, v in counts.items()}
-    return {"brand": brand, "queries": total, "mix": mix, "results": results}
+    return {"brand": brand, "queries": total, "mix": mix, "mention_rate": mention_rate(mix), "results": results}
+
+
+# --- Persona fan-out ---------------------------------------------------------
+#
+# The same question, asked as different customers, gets different answers - and
+# a brand that wins the citation for one audience can vanish for another. Fan a
+# prompt out across a few preset personas and, for each, record whether the
+# target is cited and how it's portrayed. Builds on the saved queries in Prompt
+# Hub: pick a saved question, see how it lands per audience.
+
+PERSONAS: list[dict[str, str]] = [
+    {"key": "beginner", "label": "Budget beginner",
+     "desc": "a first-time buyer on a tight budget"},
+    {"key": "professional", "label": "Quality-focused pro",
+     "desc": "an experienced professional who wants the best quality regardless of price"},
+    {"key": "smb", "label": "Small-business owner",
+     "desc": "a small-business owner comparing a few options for their team"},
+    {"key": "enterprise", "label": "Enterprise buyer",
+     "desc": "an enterprise buyer focused on scale, security, and support"},
+    {"key": "skeptic", "label": "Skeptical researcher",
+     "desc": "a skeptical researcher digging into reviews and downsides"},
+]
+_PERSONA_BY_KEY = {p["key"]: p for p in PERSONAS}
+
+
+def persona_query(query: str, desc: str) -> str:
+    """Frame a question as a given persona asking it. Pure."""
+    return f"I am {desc}. {query.strip()}"
+
+
+def select_personas(keys: list[str]) -> list[dict[str, str]]:
+    """Resolve persona keys to persona dicts, in the canonical order.
+
+    Unknown keys are ignored; an empty selection means "all personas". Pure.
+    """
+    if not keys:
+        return list(PERSONAS)
+    wanted = set(keys)
+    return [p for p in PERSONAS if p["key"] in wanted]
+
+
+def summarize_personas(rows: list[dict[str, Any]]) -> dict[str, int]:
+    """Roll persona rows into counts: how many cited and mentioned the brand."""
+    return {
+        "personas": len(rows),
+        "cited": sum(1 for r in rows if r.get("cited")),
+        "mentioned": sum(1 for r in rows if r.get("mentioned")),
+    }
+
+
+def run_persona_fanout(brand: str, query: str, personas: list[dict[str, str]],
+                       model: str) -> dict[str, Any]:
+    """Run one question as each persona; record citation and portrayal per row.
+
+    For each persona the question is reframed, sent through the live answer
+    engine, then the answer is checked for a citation of the brand's domain and
+    classified for whether/how the brand is mentioned.
+    """
+    target = normalize_domain(brand)
+    rows: list[dict[str, Any]] = []
+    for persona in personas:
+        urls, answer = run_claude(persona_query(query, persona["desc"]), model)
+        cited = bool(target) and any(domains_match(target, u) for u in urls)
+        verdict = classify_sentiment(brand, answer, CLASSIFIER_MODEL)
+        rows.append({
+            "key": persona["key"],
+            "persona": persona["label"],
+            "cited": cited,
+            "mentioned": bool(verdict.get("mentioned")),
+            "sentiment": verdict.get("sentiment", "not_mentioned"),
+            "evidence": str(verdict.get("evidence", ""))[:200],
+        })
+    return {"brand": brand, "query": query, "rows": rows, "summary": summarize_personas(rows)}
 
 
 # Each provider: label, the env var its key lives in, a runner (None = not yet

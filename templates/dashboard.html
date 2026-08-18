@@ -182,9 +182,188 @@
   .themerow .switch i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
   [data-theme="dark"] .themerow .switch{background:var(--green)}
   [data-theme="dark"] .themerow .switch i{left:18px}
+
+  /* ============================================================
+     EDITORIAL RESTYLE (archdrift-inspired) — airy light theme,
+     oversized condensed stat numbers, tracked all-caps micro-labels,
+     hairline flat cards. Layered over the base styles above so all
+     tabs adopt the new language without markup changes.
+     ============================================================ */
+  /* Condensed display face. Prefers a bundled Archivo Narrow (drop the file at
+     static/fonts/ and it loads automatically); otherwise falls back to the
+     platform condensed cut via font-stretch on the number classes below. */
+  @font-face{
+    font-family:"Archivo Narrow";font-style:normal;font-weight:700;
+    font-display:swap;src:url("/static/fonts/ArchivoNarrow-Bold.woff2") format("woff2");
+  }
+  :root{
+    --bg:#fbfbf9; --panel:#ffffff; --line:#ececea; --ink:#141a16;
+    --muted:#8b938d; --track:#eef1ee;
+    --display:"Archivo Narrow","Helvetica Neue",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --caps:.13em;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1310; --panel:#141a16; --line:#232c27; --ink:#e9efeb;
+    --muted:#8a978f; --track:#232c27;
+  }
+  body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+  /* --- hairline, roomy cards; drop any heavy fills --- */
+  .card,.searchcard{border-radius:16px;padding:26px}
+  .card{margin-bottom:16px}
+  .auditsum .s{border-radius:14px;padding:18px 20px}
+
+  /* --- tracked all-caps micro-labels --- */
+  h2,.catname,.h2sm,.result-head .lbl,.auditsum .s small,
+  .mixlegend small,.result-head .src{
+    text-transform:uppercase;letter-spacing:var(--caps);font-weight:700}
+  h2{font-size:11.5px;color:var(--muted)}
+  .auditsum .s small{font-size:10px;letter-spacing:var(--caps)}
+
+  /* --- oversized, tight, tabular display numbers (the hero move) --- */
+  .score,.auditsum .s b,.mixlegend b,.gauge .num,.kpi-num{
+    font-family:var(--display);font-weight:800;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;line-height:.92;font-stretch:condensed}
+  .score{font-size:58px}
+  .score small{font-size:17px;letter-spacing:0;font-weight:500}
+  .auditsum .s b{font-size:42px;margin-bottom:4px}
+  .mixlegend b{font-size:30px}
+  .gauge .num{font-size:52px}
+
+  /* --- softer grade block, less candy --- */
+  .grade{border-radius:14px;font-weight:800;letter-spacing:-.02em}
+
+  /* --- sidebar: left accent bar on active, quieter labels --- */
+  nav a{border-radius:10px}
+  nav a.active{background:transparent;box-shadow:inset 3px 0 0 var(--green);border-radius:0 10px 10px 0}
+  [data-theme="dark"] nav a.active{background:transparent}
+  .side nav .lbl{letter-spacing:var(--caps);opacity:.7}
+
+  /* --- calmer top breadcrumb bar --- */
+  .topbar{background:transparent;border-bottom:1px solid var(--line)}
+  [data-theme="dark"] .topbar{background:transparent}
+
+  /* --- segmented provider pills: tighter, squarer --- */
+  .chip{font-size:13px;padding:7px 15px;border-radius:9px;font-weight:600}
+
+  /* --- inputs & primary button: match the flatter language --- */
+  .searchcard input,input,textarea{border-radius:10px}
+  button.primary{border-radius:10px;letter-spacing:.01em}
+
+  /* --- faint graph-paper dot grid behind cards (archdrift signature) --- */
+  .card{
+    background-color:var(--panel);
+    background-image:radial-gradient(var(--line) .9px,transparent .9px);
+    background-size:22px 22px;
+    background-position:-1px -1px;
+    box-shadow:0 1px 2px rgba(20,26,22,.04);
+  }
+  [data-theme="dark"] .card{box-shadow:none}
+  /* keep the dot grid off inner/nested cards so text stays crisp */
+  .card .card{background-image:none;box-shadow:none}
+
+  /* --- crank the hero numbers bigger + more condensed --- */
+  .score{font-size:66px;letter-spacing:-.045em}
+  .gauge .num{font-size:60px;letter-spacing:-.04em}
+  .auditsum .s b{font-size:48px}
+  .gauge .cap{letter-spacing:.22em;font-weight:800}
+
+  /* --- stronger, roomier stat cards with a hairline divider feel --- */
+  .auditsum{gap:12px}
+  .auditsum .s{padding:20px 22px;box-shadow:0 1px 2px rgba(20,26,22,.04)}
+  .auditsum .s small{font-size:9.5px;letter-spacing:.16em;opacity:.85}
+
+  /* --- section labels: smaller, wider, more editorial --- */
+  h2,.result-head .lbl,.h2sm{font-size:10.5px;letter-spacing:.16em}
+
+  /* --- top KPI stat-card row (archdrift Analytics header) --- */
+  .kpirow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 26px}
+  @media(max-width:860px){.kpirow{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:440px){.kpirow{grid-template-columns:1fr}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;box-shadow:0 1px 2px rgba(20,26,22,.04);
+    display:flex;flex-direction:column}
+  [data-theme="dark"] .kpi{box-shadow:none}
+  /* reserve a fixed 2-line label height so every big number starts on the
+     same baseline regardless of how the label wraps */
+  .kpi-lbl{font-size:9.5px;letter-spacing:.12em;line-height:1.35;
+    text-transform:uppercase;color:var(--muted);font-weight:700;
+    min-height:2.7em;margin-bottom:10px}
+  .kpi-num{font-size:46px}
+  /* pin the sub-caption to the bottom so cards read as one aligned band */
+  .kpi-sub{margin-top:auto;padding-top:9px}
+  .kpi-num.kpi-date{font-size:30px;letter-spacing:-.02em}
+  .kpi-den{font-size:16px;font-weight:600;color:var(--muted);letter-spacing:0;
+    margin-left:4px;font-stretch:normal}
+  .kpi-sub{font-size:11.5px;color:var(--muted);margin-top:9px}
+  .kpi-delta{color:var(--green);font-weight:700}
+
+  /* --- ranked fixes: the severity badges and the Fix-it row landed after this
+     restyle was authored, so they still carried the old admin-panel styling.
+     Same three moves as everywhere else: tracked caps, condensed display
+     numbers, hairline separators. --- */
+  .sev{font-size:9.5px;letter-spacing:var(--caps);border-radius:5px;padding:4px 8px;margin-top:3px}
+  .fixrow{padding:20px 0;gap:16px}
+  .fixtitle{font-size:15px;letter-spacing:-.005em}
+  .fixpts{font-family:var(--display);font-weight:800;font-size:22px;
+    letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1;
+    font-stretch:condensed;margin-bottom:2px}
+  .fixes-head .lift{font-variant-numeric:tabular-nums}
+  .fixlink{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:700}
 </style>
 </head>
 <body>
+{% if demo %}
+<script>
+/* Read-only demo: answer every /api/* call from baked sample data so visitors
+   can explore every tab with no account, no URL, and zero API credit spent.
+   Installed before the main script so window.fetch is patched before any call. */
+window.CITEPILOT_DEMO = true;
+window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
+(function(){
+  const F = window.DEMO_FIXTURES;
+  const real = window.fetch.bind(window);
+  const reply = obj => Promise.resolve(new Response(JSON.stringify(obj),
+    {status:200, headers:{'Content-Type':'application/json'}}));
+  function route(path, search){
+    switch(path){
+      case '/api/analyze':       return F.analyze;
+      case '/api/audit':         return F.audit;
+      case '/api/schema':        return F.schema;
+      case '/api/report':        return F.report;
+      case '/api/teardown':      return F.teardown;
+      case '/api/export':        return F.export;
+      case '/api/rewrite':       return F.rewrite;
+      case '/api/sentiment':     return F.sentiment;
+      case '/api/competitors':   return F.competitors;
+      case '/api/niche':         return F.niche;
+      case '/api/brand-index':   return search.includes('domain=') ? F.brand_index : F.brand_index_list;
+      case '/api/tracked':       return F.tracked;
+      case '/api/history':       return F.history;
+      case '/api/prompts':       return F.prompts;          // list (GET) or save (POST) — read-only
+      case '/api/prompts/delete':return F.prompts;
+      case '/api/alerts':        return F.alerts;
+      case '/api/alerts/clear':  return {ok:true, count:0, alerts:[]};
+      case '/api/pulse':         return F.pulse;
+      case '/api/batch':         return F.batch;
+      case '/api/brief':         return F.brief;
+    }
+    return undefined;
+  }
+  window.fetch = function(input, init){
+    try{
+      const url = (typeof input === 'string') ? input : input.url;
+      const u = new URL(url, window.location.origin);
+      if(u.pathname.startsWith('/api/')){
+        const fx = route(u.pathname, u.search);
+        return reply(fx === undefined ? {} : fx);
+      }
+    }catch(e){ /* fall through to the real network for anything non-/api */ }
+    return real(input, init);
+  };
+})();
+</script>
+{% endif %}
 <div class="app">
   <aside class="side">
     <div class="brand">citepilot</div>
@@ -208,6 +387,7 @@
         <a data-view="competitors"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Competitors <span class="tag">Phase 6</span></a>
         <a data-view="teardown"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h6"/><path d="M15 12h6"/><path d="M12 3v18"/><path d="m6 8-3 4 3 4"/><path d="m18 8 3 4-3 4"/></svg> Teardown <span class="tag">New</span></a>
         <a data-view="sentiment"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg> Sentiment <span class="tag">Phase 6</span></a>
+        <a data-view="persona"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M4 20a5 5 0 0 1 10 0"/><circle cx="17" cy="9" r="2.2"/><path d="M15 20a4 4 0 0 1 6.5-3.1"/></svg> Persona Fan-Out <span class="tag">New</span></a>
         <a data-view="brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 12l4-3"/><circle cx="12" cy="12" r="1.6"/></svg> Brand Index <span class="tag">New</span></a>
       </div>
       <div class="grp">
@@ -220,6 +400,7 @@
         <div class="lbl">Track</div>
         <a data-view="history"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg> History <span class="tag">New</span></a>
         <a data-view="monitoring"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg> Monitoring <span class="tag alert-badge hidden" id="nav-alert-badge">0</span></a>
+        <a data-view="drift"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg> Drift Watch <span class="tag">New</span></a>
       </div>
       <div class="grp">
         <a data-view="docs"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg> Documentation</a>
@@ -233,8 +414,37 @@
   </aside>
 
   <div class="main">
+    {% if demo %}
+    <div class="topbar" style="background:#12563a;color:#eaf3ee;border-bottom-color:#0d3f2b;justify-content:space-between">
+      <span>👋 You're viewing an <b>interactive demo</b> with sample data — everything is read-only.</span>
+      <a href="/signup" style="background:#3ecf8e;color:#0f1712;font-weight:700;padding:6px 14px;border-radius:20px;text-decoration:none;white-space:nowrap">Start for real →</a>
+    </div>
+    {% else %}
     <div class="topbar"><span><b>Live tool</b> — analyze any page against AI citation-readiness signals.</span></div>
+    {% endif %}
     <div class="body">
+      <div class="kpirow" id="kpirow">
+        <div class="kpi">
+          <div class="kpi-lbl">Brand Index</div>
+          <div class="kpi-num" id="kpi-bvi">—<span class="kpi-den">/100</span></div>
+          <div class="kpi-sub" id="kpi-bvi-sub">no runs yet</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Mention Rate</div>
+          <div class="kpi-num" id="kpi-mention">—<span class="kpi-den">%</span></div>
+          <div class="kpi-sub" id="kpi-mention-sub">latest sentiment run</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Pages Analyzed</div>
+          <div class="kpi-num" id="kpi-runs">—</div>
+          <div class="kpi-sub" id="kpi-runs-sub">across your workspace</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Last Pulse</div>
+          <div class="kpi-num kpi-date" id="kpi-pulse">—</div>
+          <div class="kpi-sub" id="kpi-pulse-sub">no activity yet</div>
+        </div>
+      </div>
       <div id="view-analyze" class="view">
       <h1>Analyze a page</h1>
       <p class="sub">Paste a URL. We read the page, score how quotable it is to AI answer engines, and show the fixes ranked by impact.</p>
@@ -378,11 +588,37 @@
         <div id="se-err" class="err hidden"></div>
         <div id="se-results" class="hidden">
           <div class="card">
+            <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+              <span style="font-size:40px;font-weight:800;line-height:1;color:var(--green)" id="se-mention-rate">0%</span>
+              <div><div style="font-weight:700">Mention rate</div><div class="cur" id="se-mention-note"></div></div>
+            </div>
+          </div>
+          <div class="card">
             <h2>Sentiment mix</h2>
             <div class="mixbar" id="se-mixbar"></div>
             <div class="mixlegend" id="se-legend"></div>
           </div>
           <div class="card"><h2>Per question</h2><div id="se-table"></div></div>
+        </div>
+      </div>
+
+      <div id="view-persona" class="view hidden">
+        <h1>Persona Fan-Out</h1>
+        <p class="sub">Ask one question as different customers. A brand that wins the citation for a budget beginner can vanish for an enterprise buyer - this shows where you show up, by audience. Uses Claude and consumes API credit.</p>
+        <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
+          <input id="pf-brand" type="text" placeholder="your brand or domain, e.g. yoursite.com">
+          <input id="pf-query" type="text" placeholder="a question your customers ask, e.g. best way to descale a kettle">
+          <div style="display:flex;gap:8px"><button class="ghost" id="pf-load-hub">Load a question from Hub</button></div>
+          <div id="pf-personas" style="display:flex;flex-wrap:wrap;gap:14px"></div>
+          <div><button class="primary" id="pf-go">Run fan-out</button>
+          <span class="cur" style="margin-left:10px">One live answer per selected persona - a few personas take a minute or two.</span></div>
+        </div>
+        <div id="pf-err" class="err hidden"></div>
+        <div id="pf-results" class="hidden">
+          <div class="card">
+            <h2 id="pf-sum"></h2>
+            <div id="pf-list"></div>
+          </div>
         </div>
       </div>
 
@@ -513,6 +749,27 @@
         <div class="card">
           <h2>Open alerts</h2>
           <div id="mo-alerts"><p class="cur">No alerts. Run a pulse to re-check your tracked pages.</p></div>
+        </div>
+      </div>
+
+      <div id="view-drift" class="view hidden">
+        <h1>Drift Watch</h1>
+        <p class="sub">How every tracked target's score has moved over time - biggest movers first. Drift builds as runs accumulate, so pulse your pages (Monitoring) and re-run your saved queries (Prompt Hub) to give it signal.</p>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+          <select id="dr-kind" style="border:1px solid var(--line);border-radius:9px;padding:9px 12px;font:inherit;background:var(--panel);color:var(--ink)">
+            <option value="">All signals</option>
+            <option value="analyze">Analyze</option>
+            <option value="competitors">Competitors</option>
+            <option value="sentiment">Sentiment</option>
+            <option value="mention">Mention rate</option>
+            <option value="bvi">Brand Index</option>
+          </select>
+          <button class="ghost" id="dr-refresh">Refresh</button>
+        </div>
+        <div id="dr-err" class="err hidden"></div>
+        <div class="card">
+          <h2>Movers</h2>
+          <div id="dr-list"><p class="cur">No drift yet - a target needs at least two runs. Analyze or pulse the same targets over time to see movement.</p></div>
         </div>
       </div>
 
@@ -664,6 +921,7 @@ async function analyze(){
     const data = await res.json();
     if(!res.ok){ showErr(data.error || 'Analysis failed.'); return; }
     render(data);
+    loadOverview();
   }catch(e){ showErr('Network error: '+e.message); }
   finally{ setBusy($('go'), false, 'Analyze'); }
 }
@@ -771,6 +1029,8 @@ document.querySelectorAll('nav a[data-view]').forEach(a=>a.addEventListener('cli
   if(a.dataset.view==='brand') loadBrands();
   if(a.dataset.view==='monitoring') loadAlerts();
   if(a.dataset.view==='prompts') loadPrompts();
+  if(a.dataset.view==='drift') loadDrift();
+  if(a.dataset.view==='persona') buildPersonaChecks();
 }));
 
 // --- rewrite tab ---
@@ -918,6 +1178,9 @@ async function runSentiment(){
   finally{ setBusy($('se-go'), false, 'Run sentiment check'); }
 }
 function renderSentiment(d){
+  const mr = d.mention_rate != null ? d.mention_rate : 0;
+  $('se-mention-rate').textContent = mr + '%';
+  $('se-mention-note').textContent = `of ${d.queries||0} answer${d.queries===1?'':'s'} mention your brand at all - tracked over time in Drift Watch.`;
   const order = ['positive','neutral','negative','not_mentioned'];
   $('se-mixbar').innerHTML = order.map(k=>{
     const pct = (d.mix[k]||{}).pct||0;
@@ -1194,6 +1457,7 @@ function exErr(m){ const e=$('ex-err'); e.textContent=m; e.classList.remove('hid
 const KIND_META = {
   analyze:{label:'Analyze', suffix:'/100'},
   sentiment:{label:'Sentiment', suffix:'% positive'},
+  mention:{label:'Mention rate', suffix:'% mentioned'},
   competitors:{label:'Competitors', suffix:'% cited'},
 };
 async function loadTracked(){
@@ -1318,6 +1582,28 @@ async function clearAlerts(){
 $('mo-pulse').addEventListener('click', runMonitorPulse);
 $('mo-clear').addEventListener('click', clearAlerts);
 refreshAlertBadge();
+
+// --- top KPI header row: workspace snapshot ---
+function fmtPulse(iso){
+  if(!iso) return '—';
+  const d = new Date(iso.replace(' ','T'));
+  if(isNaN(d)) return String(iso).slice(0,10);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+async function loadOverview(){
+  try{
+    const o = await (await fetch('/api/overview')).json();
+    $('kpi-bvi').innerHTML = (o.bvi==null?'—':o.bvi) + '<span class="kpi-den">/100</span>';
+    $('kpi-bvi-sub').textContent = o.pages_analyzed ? 'mean of latest page scores' : 'no runs yet';
+    $('kpi-mention').innerHTML = (o.mention_rate==null?'—':o.mention_rate) + '<span class="kpi-den">%</span>';
+    $('kpi-mention-sub').textContent = o.mention_rate==null ? 'run Sentiment to populate' : 'latest sentiment run';
+    $('kpi-runs').textContent = o.pages_analyzed || '—';
+    $('kpi-runs-sub').textContent = 'distinct pages across your workspace';
+    $('kpi-pulse').textContent = fmtPulse(o.last_pulse);
+    $('kpi-pulse-sub').textContent = o.last_pulse ? 'most recent activity' : 'no activity yet';
+  }catch(e){ /* leave the placeholder dashes on error */ }
+}
+loadOverview();
 
 // --- site-wide (batch) tab ---
 async function runBatch(){
@@ -1459,6 +1745,96 @@ $('c-load-hub').addEventListener('click', e=>loadHubInto('c-queries', e.target))
 $('c-save-hub').addEventListener('click', e=>saveToHub($('c-queries').value.split('\n'), e.target));
 $('se-load-hub').addEventListener('click', e=>loadHubInto('se-queries', e.target));
 $('se-save-hub').addEventListener('click', e=>saveToHub($('se-queries').value.split('\n'), e.target));
+
+// --- drift watch tab ---
+const DRIFT_LABELS = {analyze:'Analyze', competitors:'Competitors', sentiment:'Sentiment', mention:'Mention rate', bvi:'Brand Index'};
+async function loadDrift(){
+  $('dr-err').classList.add('hidden');
+  const kind = $('dr-kind').value;
+  try{
+    const d = await (await fetch('/api/drift' + (kind ? '?kind='+encodeURIComponent(kind) : ''))).json();
+    renderDrift(d.movers || []);
+  }catch(e){ tabErr('dr-err','Network error: '+e.message); }
+}
+function renderDrift(movers){
+  if(!movers.length){ $('dr-list').innerHTML='<p class="cur">No drift yet - a target needs at least two runs. Analyze or pulse the same targets over time to see movement.</p>'; return; }
+  $('dr-list').innerHTML = movers.map(m=>{
+    const label = DRIFT_LABELS[m.kind] || m.kind;
+    const suffix = (KIND_META[m.kind] || {}).suffix || '';
+    const arrow = m.direction==='up' ? '▲' : (m.direction==='down' ? '▼' : '■');
+    const col = m.direction==='up' ? '#16a34a' : (m.direction==='down' ? '#dc2626' : 'var(--muted)');
+    const sign = m.delta>0 ? '+' : '';
+    return `<div class="item">
+      <div class="item-h">
+        <span>${escapeHtml(m.target)} <span class="tag">${escapeHtml(label)}</span></span>
+        <span style="color:${col};font-weight:700;white-space:nowrap">${arrow} ${sign}${m.delta}</span>
+      </div>
+      <div class="cur">${m.first} → ${m.latest}${suffix} · ${m.points} run${m.points===1?'':'s'} · range ${m.min}–${m.max}</div>
+      ${sparkline(m.scores)}
+    </div>`;
+  }).join('');
+}
+$('dr-refresh').addEventListener('click', loadDrift);
+$('dr-kind').addEventListener('change', loadDrift);
+
+// --- persona fan-out tab ---
+const PERSONAS = [
+  {key:'beginner', label:'Budget beginner'},
+  {key:'professional', label:'Quality-focused pro'},
+  {key:'smb', label:'Small-business owner'},
+  {key:'enterprise', label:'Enterprise buyer'},
+  {key:'skeptic', label:'Skeptical researcher'},
+];
+let PERSONA_CHECKS_BUILT = false;
+function buildPersonaChecks(){
+  if(PERSONA_CHECKS_BUILT) return;
+  $('pf-personas').innerHTML = PERSONAS.map(p=>`
+    <label style="display:flex;gap:7px;align-items:center;font-weight:500;cursor:pointer">
+      <input type="checkbox" class="pf-p" value="${p.key}" checked> ${escapeHtml(p.label)}</label>`).join('');
+  PERSONA_CHECKS_BUILT = true;
+}
+async function loadQuestionFromHub(btn){
+  try{
+    const d = await (await fetch('/api/prompts')).json();
+    const texts = (d.prompts||[]).map(p=>p.text);
+    if(!texts.length){ flashBtn(btn,'Hub is empty'); return; }
+    $('pf-query').value = texts[0];
+    flashBtn(btn,'Loaded');
+  }catch(e){ tabErr('pf-err','Network error: '+e.message); }
+}
+async function runPersona(){
+  const brand = $('pf-brand').value.trim();
+  const query = $('pf-query').value.trim();
+  const personas = [...document.querySelectorAll('.pf-p:checked')].map(c=>c.value);
+  if(!brand){ tabErr('pf-err','Enter your brand or domain.'); return; }
+  if(!query){ tabErr('pf-err','Enter a question to fan out.'); return; }
+  if(!personas.length){ tabErr('pf-err','Pick at least one persona.'); return; }
+  $('pf-err').classList.add('hidden'); $('pf-results').classList.add('hidden');
+  setBusy($('pf-go'), true, 'Running…');
+  try{
+    const res = await fetch('/api/persona',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand,query,personas})});
+    const data = await res.json();
+    if(!res.ok){ tabErr('pf-err', data.error||'Failed.'); return; }
+    renderPersona(data);
+  }catch(e){ tabErr('pf-err','Network error: '+e.message); }
+  finally{ setBusy($('pf-go'), false, 'Run fan-out'); }
+}
+function renderPersona(d){
+  const s = d.summary||{};
+  $('pf-sum').textContent = `Cited for ${s.cited||0} of ${s.personas||0} personas · mentioned for ${s.mentioned||0} of ${s.personas||0}`;
+  $('pf-list').innerHTML = (d.rows||[]).map(r=>{
+    const sm = SENTIMENT_META[r.sentiment] || {label:r.sentiment, color:'#64748b'};
+    const cited = r.cited ? '<span style="color:#16a34a;font-weight:700">✓ cited</span>' : '<span class="cur">not cited</span>';
+    return `<div class="item"><div class="item-h">
+      <span><b>${escapeHtml(r.persona)}</b></span>
+      <span style="display:flex;gap:10px;align-items:center">${cited}
+        <span class="pill" style="background:${sm.color}">${escapeHtml(sm.label)}</span></span></div>
+      ${r.evidence?`<p class="cur">“${escapeHtml(r.evidence)}”</p>`:''}</div>`;
+  }).join('');
+  $('pf-results').classList.remove('hidden');
+}
+$('pf-go').addEventListener('click', runPersona);
+$('pf-load-hub').addEventListener('click', e=>loadQuestionFromHub(e.target));
 
 // --- documentation tab ---
 const DOCS = [
@@ -1612,6 +1988,25 @@ function toggleTheme(){
 }
 $('themeToggle').addEventListener('click', toggleTheme);
 $('themeToggle').addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleTheme(); } });
+
+{% if demo %}
+// Demo mode: prefill every tab's inputs with the sample company so each button
+// works in one click, then auto-run Analyze so the landing tab arrives populated.
+(function(){
+  const F = window.DEMO_FIXTURES, set = (id,v)=>{ const el=$(id); if(el) el.value=v; };
+  const U = F.sample_url, C = F.sample_competitor, B = F.sample_brand;
+  ['url','sc-url','rp-url','au-url','ex-url','rw-url'].forEach(id=>set(id,U));
+  set('td-you',U); set('td-them',C);
+  ['c-target','bi-domain','ni-brand','ba-target'].forEach(id=>set(id,B));
+  set('se-brand','Acme');
+  set('ni-keywords','ai visibility, answer engine optimization, brand citations');
+  set('c-queries', F.prompts.prompts.map(p=>p.text).join('\n'));
+  set('se-queries', F.sentiment.results.map(r=>r.query).join('\n'));
+  set('br-q','How do I get my brand cited by ChatGPT?');
+  try{ updateCapNote(); }catch(e){}
+  analyze();
+})();
+{% endif %}
 </script>
 </body>
 </html>

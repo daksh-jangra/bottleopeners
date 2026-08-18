@@ -19,14 +19,16 @@ import threading
 import time
 from typing import Any
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request
 
 import analyzer
 import audit
 import brandindex
 import brief
 import db
+import drift
 import export
+import gate
 import generator
 import harness
 import ingest
@@ -92,9 +94,69 @@ def _fetch_payload(url: str) -> dict[str, Any]:
     return ingest.extract_html_payload(html, url)
 
 
+LANDING_DATA = {
+    "app_url": "/app",
+    "bars": [
+        {"name": "Answer-first structure", "score": "84", "pct": "84%", "color": "#1b5e40"},
+        {"name": "Citable claims", "score": "71", "pct": "71%", "color": "#1b5e40"},
+        {"name": "Schema", "score": "48", "pct": "48%", "color": "#c98a2b"},
+        {"name": "Entity clarity", "score": "90", "pct": "90%", "color": "#1b5e40"},
+    ],
+    "steps": [
+        {"n": "1", "title": "Paste a URL", "desc": "Any page — a guide, a product page, a doc. citepilot reads it the way an AI crawler does."},
+        {"n": "2", "title": "Get your score", "desc": "A single quotability score plus a breakdown across the five signals that matter."},
+        {"n": "3", "title": "Ship the fixes", "desc": "Schema, citation targets and rewrites, ranked by impact and ready to paste."},
+    ],
+    "signals": [
+        {"name": "Answer-first structure", "tag": "How you're read"},
+        {"name": "Citable claims & stats", "tag": "What gets quoted"},
+        {"name": "Schema & structured data", "tag": "Machine clarity"},
+        {"name": "Entity clarity", "tag": "Who you are"},
+        {"name": "Freshness signals", "tag": "Recency"},
+    ],
+}
+
+
 @app.get("/")
 def index():
+    return render_template("landing.html", **LANDING_DATA)
+
+
+@app.get("/app")
+def dashboard():
     return render_template("dashboard.html")
+
+
+# Auth pages are visual-only for now ("for eyes"): the forms POST here and we
+# simply drop the visitor into the tool. Real email/password auth comes later,
+# at which point these handlers validate credentials and set a session.
+@app.get("/signin")
+def signin():
+    return render_template("signin.html")
+
+
+@app.get("/signup")
+def signup():
+    return render_template("signup.html")
+
+
+@app.post("/signin")
+@app.post("/signup")
+def auth_submit():
+    return redirect("/app")
+
+
+# Read-only interactive demo: the same dashboard, but a client-side fetch shim
+# answers every /api/* call from baked sample data (see demo_fixtures.json), so
+# visitors can explore every tab without an account, a URL, or spending credit.
+_DEMO_FIXTURES_PATH = os.path.join(os.path.dirname(__file__), "demo_fixtures.json")
+with open(_DEMO_FIXTURES_PATH, encoding="utf-8") as _f:
+    DEMO_FIXTURES = json.load(_f)
+
+
+@app.get("/demo")
+def demo():
+    return render_template("dashboard.html", demo=True, demo_fixtures=DEMO_FIXTURES)
 
 
 def _analyze_url(url: str) -> dict[str, Any]:
@@ -134,6 +196,29 @@ def api_analyze():
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:  # keep the UI honest about failures
+        return _server_error(exc)
+
+
+@app.post("/api/gate")
+def api_gate():
+    """CI/API gate: score a URL and report pass/fail against a minimum.
+
+    The dashboard shows the score; this returns a machine verdict for pipelines
+    (also available as the `gate.py` CLI with CI exit codes). Nothing is saved.
+    """
+    data = request.json or {}
+    url = (data.get("url") or "").strip()
+    if not url:
+        return jsonify({"error": "Enter a page URL."}), 400
+    try:
+        minimum = int(data.get("min", gate.DEFAULT_MIN))
+    except (TypeError, ValueError):
+        minimum = gate.DEFAULT_MIN
+    try:
+        return jsonify(gate.run_gate(url, minimum))
+    except ingest.IngestError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
         return _server_error(exc)
 
 
@@ -494,11 +579,46 @@ def api_sentiment():
         return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run sentiment checks."}), 400
     try:
         result = harness.run_sentiment(brand, queries, DEFAULT_MODEL)
-        # Headline number for the trend line: share of answers that were positive.
+        # Two trend lines from one run: positive-sentiment share (feeds the Brand
+        # Index) and mention rate - how often the brand shows up at all. The
+        # latter is tracked as its own kind so it accrues history in Drift Watch.
         positive_pct = result.get("mix", {}).get("positive", {}).get("pct", 0)
         db.save_run("sentiment", brand, positive_pct, result)
+        db.save_run("mention", brand, result.get("mention_rate", 0), {
+            "queries": result.get("queries"),
+            "not_mentioned": result.get("mix", {}).get("not_mentioned", {}).get("count", 0),
+        })
         _snapshot_bvi(brand)
         return jsonify(result)
+    except harness.HarnessError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return _server_error(exc)
+
+
+@app.post("/api/persona")
+def api_persona():
+    """Persona Fan-Out: run one question as several customer personas and report
+    citation + portrayal per persona. Uses Claude, so it consumes API credit."""
+    data = request.json or {}
+    brand = (data.get("brand") or "").strip()
+    query = (data.get("query") or "").strip()
+    keys = data.get("personas") or []
+    if not isinstance(keys, list):
+        keys = []
+
+    if not brand:
+        return jsonify({"error": "Enter your brand or domain."}), 400
+    if not query:
+        return jsonify({"error": "Enter a question to fan out."}), 400
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run persona checks."}), 400
+
+    personas = harness.select_personas([str(k) for k in keys])
+    if not personas:
+        return jsonify({"error": "Pick at least one persona."}), 400
+    try:
+        return jsonify(harness.run_persona_fanout(brand, query, personas, DEFAULT_MODEL))
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
@@ -600,6 +720,37 @@ def api_tracked():
     return jsonify({"targets": db.tracked_targets()})
 
 
+@app.get("/api/overview")
+def api_overview():
+    """Workspace snapshot for the KPI header row: a Brand Visibility Index
+    (mean of each domain's latest analyze score), the latest mention rate,
+    how many distinct pages have been analyzed, and the last activity time.
+    Every field degrades to null when there is no data yet."""
+    analyze_runs = db.runs_by_kind("analyze")
+    mention_runs = db.runs_by_kind("mention")
+
+    latest_by_target: dict[str, int] = {}
+    for run in analyze_runs:  # newest-first, so the first score per target wins
+        score = run.get("score")
+        if run["target"] not in latest_by_target and score is not None:
+            latest_by_target[run["target"]] = score
+    bvi = round(sum(latest_by_target.values()) / len(latest_by_target)) if latest_by_target else None
+
+    mention_rate = next((r["score"] for r in mention_runs if r.get("score") is not None), None)
+
+    all_times = [r["created_at"] for r in (analyze_runs + mention_runs
+                 + db.runs_by_kind("competitors") + db.runs_by_kind("sentiment"))
+                 if r.get("created_at")]
+    last_pulse = max(all_times) if all_times else None
+
+    return jsonify({
+        "bvi": bvi,
+        "mention_rate": mention_rate,
+        "pages_analyzed": len(latest_by_target),
+        "last_pulse": last_pulse,
+    })
+
+
 @app.post("/api/history")
 def api_history():
     data = request.json or {}
@@ -608,6 +759,21 @@ def api_history():
     if not target:
         return jsonify({"error": "Enter a page URL."}), 400
     return jsonify({"target": target, "kind": kind, "runs": db.history(kind, target)})
+
+
+@app.get("/api/drift")
+def api_drift():
+    """Drift Watch: every tracked target's score movement over time, biggest first.
+
+    Optional ?kind= filters to one run kind. Targets with fewer than two scored
+    runs are omitted - there's no movement to show yet.
+    """
+    kind = (request.args.get("kind") or "").strip() or None
+    items = []
+    for t in db.tracked_targets(kind):
+        scores = [h["score"] for h in db.history(t["kind"], t["target"])]
+        items.append({"kind": t["kind"], "target": t["target"], "scores": scores})
+    return jsonify({"movers": drift.rank_movers(items)})
 
 
 def _run_pulse() -> dict[str, Any]:
