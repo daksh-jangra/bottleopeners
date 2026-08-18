@@ -794,5 +794,11 @@
     "grade": "F"
    }
   ]
+ },
+ "overview": {
+  "bvi": 71,
+  "mention_rate": 88,
+  "pages_analyzed": 4,
+  "last_pulse": "2026-05-30T09:00:00"
  }
 }

@@ -339,6 +339,7 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
       case '/api/niche':         return F.niche;
       case '/api/brand-index':   return search.includes('domain=') ? F.brand_index : F.brand_index_list;
       case '/api/tracked':       return F.tracked;
+      case '/api/overview':      return F.overview;
       case '/api/history':       return F.history;
       case '/api/prompts':       return F.prompts;          // list (GET) or save (POST) — read-only
       case '/api/prompts/delete':return F.prompts;
