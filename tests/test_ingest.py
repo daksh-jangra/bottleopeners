@@ -181,3 +181,80 @@ def test_guard_url_skips_resolution_in_dev_mode(monkeypatch):
     monkeypatch.setattr(socket, "getaddrinfo", _boom)
     # dev mode: accepted without resolution, and no IP to pin
     assert ingest.guard_url("http://localhost:8000/") is None
+
+
+# --- extract_author ---------------------------------------------------------
+#
+# Byline scoring reads this field instead of guessing from prose, so what it
+# does and does not find is what the byline_authority factor is worth.
+
+def _soup(html):
+    from bs4 import BeautifulSoup
+    return BeautifulSoup(html, "html.parser")
+
+
+def test_extract_author_from_meta_tag():
+    s = _soup('<html><head><meta name="author" content="Jane Smith"></head></html>')
+    assert ingest.extract_author(s) == "Jane Smith"
+
+
+def test_extract_author_from_json_ld_object():
+    schema = '{"@type":"Article","author":{"@type":"Person","name":"Ada Lovelace"}}'
+    s = _soup(f'<html><head><script type="application/ld+json">{schema}</script></head></html>')
+    assert ingest.extract_author(s, schema) == "Ada Lovelace"
+
+
+def test_extract_author_from_json_ld_bare_string():
+    schema = '{"@type":"Article","author":"Grace Hopper"}'
+    assert ingest.extract_author(_soup("<html></html>"), schema) == "Grace Hopper"
+
+
+def test_extract_author_from_json_ld_list_takes_first():
+    schema = '{"@type":"Article","author":[{"name":"First Writer"},{"name":"Second Writer"}]}'
+    assert ingest.extract_author(_soup("<html></html>"), schema) == "First Writer"
+
+
+def test_extract_author_from_json_ld_graph():
+    schema = '{"@graph":[{"@type":"WebSite"},{"@type":"Article","author":{"name":"Alan Turing"}}]}'
+    assert ingest.extract_author(_soup("<html></html>"), schema) == "Alan Turing"
+
+
+def test_extract_author_meta_wins_over_schema():
+    schema = '{"@type":"Article","author":"Schema Name"}'
+    s = _soup('<html><head><meta name="author" content="Meta Name"></head></html>')
+    assert ingest.extract_author(s, schema) == "Meta Name"
+
+
+def test_extract_author_skips_profile_urls():
+    """article:author is often a Facebook profile URL, which is not a name."""
+    s = _soup('<html><head><meta property="article:author" content="https://facebook.com/someone"></head></html>')
+    assert ingest.extract_author(s) is None
+
+
+def test_extract_author_none_when_page_declares_nothing():
+    s = _soup("<html><body><p>An article written by hand, sorted by date.</p></body></html>")
+    assert ingest.extract_author(s) is None
+
+
+def test_extract_author_survives_malformed_json_ld():
+    assert ingest.extract_author(_soup("<html></html>"), "{not valid json") is None
+
+
+def test_extract_author_reads_rel_author_link():
+    s = _soup('<html><body><a rel="author" href="/staff/kim">Kim Rivera</a></body></html>')
+    assert ingest.extract_author(s) == "Kim Rivera"
+
+
+def test_html_payload_includes_author_field():
+    html = """<html><head><title>T</title><meta name="author" content="Sam Reed">
+    </head><body><article><h1>Heading here</h1><p>Some body text for the article.</p></article></body></html>"""
+    assert ingest.extract_html_payload(html, "https://example.com/a")["author"] == "Sam Reed"
+
+
+def test_html_payload_author_is_none_when_absent():
+    html = "<html><head><title>T</title></head><body><article><h1>Heading</h1><p>Body text here.</p></article></body></html>"
+    assert ingest.extract_html_payload(html, "https://example.com/a")["author"] is None
+
+
+def test_markdown_payload_has_null_author():
+    assert ingest.extract_markdown_payload("# Title\n\nSome body text.\n", "a.md")["author"] is None

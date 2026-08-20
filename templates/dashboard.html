@@ -145,8 +145,23 @@
   .sig-row .top .val{color:var(--muted)}
   .track{height:8px;border-radius:6px;background:var(--track);overflow:hidden}
   .track i{display:block;height:100%;border-radius:6px}
-  .fixes-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 16px}
+  .fixes-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 4px}
   .fixes-head .lift{color:var(--green);font-weight:700;font-size:13px;white-space:nowrap}
+  .fixrow{display:flex;gap:14px;align-items:flex-start;padding:18px 0;border-top:1px solid var(--line)}
+  .fixmain{flex:1;min-width:0}
+  .fixtitle{font-weight:700;font-size:16px;margin:0 0 4px}
+  .fixdesc{color:var(--muted);margin:0;font-size:14px;line-height:1.5}
+  .fixright{text-align:right;flex:none;white-space:nowrap;padding-left:8px}
+  .fixpts{display:block;color:var(--green);font-weight:800}
+  .fixlink{color:var(--muted);font-size:13px;cursor:pointer;text-decoration:none}
+  .fixlink:hover{color:var(--ink)}
+  .sev{font-size:10.5px;font-weight:800;letter-spacing:.04em;border-radius:6px;padding:3px 9px;flex:none;margin-top:2px}
+  .sev.high{background:#fde8e6;color:#c0392b}
+  .sev.med{background:#fbeecd;color:#9a6a00}
+  .sev.low{background:#e8efe9;color:#4a6a55}
+  [data-theme="dark"] .sev.high{background:#3a201e;color:#f0a094}
+  [data-theme="dark"] .sev.med{background:#33280f;color:#e0b969}
+  [data-theme="dark"] .sev.low{background:#1c2822;color:#8fb59f}
   [data-theme="dark"] button.ghost,[data-theme="dark"] .docs-pn{background:#161d1a}
   [data-theme="dark"] h2,[data-theme="dark"] .catname{color:#9aa8a1}
   [data-theme="dark"] .status{color:#c7d2cc}
@@ -167,6 +182,134 @@
   .themerow .switch i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
   [data-theme="dark"] .themerow .switch{background:var(--green)}
   [data-theme="dark"] .themerow .switch i{left:18px}
+
+  /* ============================================================
+     EDITORIAL RESTYLE (archdrift-inspired) — airy light theme,
+     oversized condensed stat numbers, tracked all-caps micro-labels,
+     hairline flat cards. Layered over the base styles above so all
+     tabs adopt the new language without markup changes.
+     ============================================================ */
+  /* Condensed display face. Prefers a bundled Archivo Narrow (drop the file at
+     static/fonts/ and it loads automatically); otherwise falls back to the
+     platform condensed cut via font-stretch on the number classes below. */
+  @font-face{
+    font-family:"Archivo Narrow";font-style:normal;font-weight:700;
+    font-display:swap;src:url("/static/fonts/ArchivoNarrow-Bold.woff2") format("woff2");
+  }
+  :root{
+    --bg:#fbfbf9; --panel:#ffffff; --line:#ececea; --ink:#141a16;
+    --muted:#8b938d; --track:#eef1ee;
+    --display:"Archivo Narrow","Helvetica Neue",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --caps:.13em;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1310; --panel:#141a16; --line:#232c27; --ink:#e9efeb;
+    --muted:#8a978f; --track:#232c27;
+  }
+  body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+  /* --- hairline, roomy cards; drop any heavy fills --- */
+  .card,.searchcard{border-radius:16px;padding:26px}
+  .card{margin-bottom:16px}
+  .auditsum .s{border-radius:14px;padding:18px 20px}
+
+  /* --- tracked all-caps micro-labels --- */
+  h2,.catname,.h2sm,.result-head .lbl,.auditsum .s small,
+  .mixlegend small,.result-head .src{
+    text-transform:uppercase;letter-spacing:var(--caps);font-weight:700}
+  h2{font-size:11.5px;color:var(--muted)}
+  .auditsum .s small{font-size:10px;letter-spacing:var(--caps)}
+
+  /* --- oversized, tight, tabular display numbers (the hero move) --- */
+  .score,.auditsum .s b,.mixlegend b,.gauge .num,.kpi-num{
+    font-family:var(--display);font-weight:800;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;line-height:.92;font-stretch:condensed}
+  .score{font-size:58px}
+  .score small{font-size:17px;letter-spacing:0;font-weight:500}
+  .auditsum .s b{font-size:42px;margin-bottom:4px}
+  .mixlegend b{font-size:30px}
+  .gauge .num{font-size:52px}
+
+  /* --- softer grade block, less candy --- */
+  .grade{border-radius:14px;font-weight:800;letter-spacing:-.02em}
+
+  /* --- sidebar: left accent bar on active, quieter labels --- */
+  nav a{border-radius:10px}
+  nav a.active{background:transparent;box-shadow:inset 3px 0 0 var(--green);border-radius:0 10px 10px 0}
+  [data-theme="dark"] nav a.active{background:transparent}
+  .side nav .lbl{letter-spacing:var(--caps);opacity:.7}
+
+  /* --- calmer top breadcrumb bar --- */
+  .topbar{background:transparent;border-bottom:1px solid var(--line)}
+  [data-theme="dark"] .topbar{background:transparent}
+
+  /* --- segmented provider pills: tighter, squarer --- */
+  .chip{font-size:13px;padding:7px 15px;border-radius:9px;font-weight:600}
+
+  /* --- inputs & primary button: match the flatter language --- */
+  .searchcard input,input,textarea{border-radius:10px}
+  button.primary{border-radius:10px;letter-spacing:.01em}
+
+  /* --- faint graph-paper dot grid behind cards (archdrift signature) --- */
+  .card{
+    background-color:var(--panel);
+    background-image:radial-gradient(var(--line) .9px,transparent .9px);
+    background-size:22px 22px;
+    background-position:-1px -1px;
+    box-shadow:0 1px 2px rgba(20,26,22,.04);
+  }
+  [data-theme="dark"] .card{box-shadow:none}
+  /* keep the dot grid off inner/nested cards so text stays crisp */
+  .card .card{background-image:none;box-shadow:none}
+
+  /* --- crank the hero numbers bigger + more condensed --- */
+  .score{font-size:66px;letter-spacing:-.045em}
+  .gauge .num{font-size:60px;letter-spacing:-.04em}
+  .auditsum .s b{font-size:48px}
+  .gauge .cap{letter-spacing:.22em;font-weight:800}
+
+  /* --- stronger, roomier stat cards with a hairline divider feel --- */
+  .auditsum{gap:12px}
+  .auditsum .s{padding:20px 22px;box-shadow:0 1px 2px rgba(20,26,22,.04)}
+  .auditsum .s small{font-size:9.5px;letter-spacing:.16em;opacity:.85}
+
+  /* --- section labels: smaller, wider, more editorial --- */
+  h2,.result-head .lbl,.h2sm{font-size:10.5px;letter-spacing:.16em}
+
+  /* --- top KPI stat-card row (archdrift Analytics header) --- */
+  .kpirow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 26px}
+  @media(max-width:860px){.kpirow{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:440px){.kpirow{grid-template-columns:1fr}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;box-shadow:0 1px 2px rgba(20,26,22,.04);
+    display:flex;flex-direction:column}
+  [data-theme="dark"] .kpi{box-shadow:none}
+  /* reserve a fixed 2-line label height so every big number starts on the
+     same baseline regardless of how the label wraps */
+  .kpi-lbl{font-size:9.5px;letter-spacing:.12em;line-height:1.35;
+    text-transform:uppercase;color:var(--muted);font-weight:700;
+    min-height:2.7em;margin-bottom:10px}
+  .kpi-num{font-size:46px}
+  /* pin the sub-caption to the bottom so cards read as one aligned band */
+  .kpi-sub{margin-top:auto;padding-top:9px}
+  .kpi-num.kpi-date{font-size:30px;letter-spacing:-.02em}
+  .kpi-den{font-size:16px;font-weight:600;color:var(--muted);letter-spacing:0;
+    margin-left:4px;font-stretch:normal}
+  .kpi-sub{font-size:11.5px;color:var(--muted);margin-top:9px}
+  .kpi-delta{color:var(--green);font-weight:700}
+
+  /* --- ranked fixes: the severity badges and the Fix-it row landed after this
+     restyle was authored, so they still carried the old admin-panel styling.
+     Same three moves as everywhere else: tracked caps, condensed display
+     numbers, hairline separators. --- */
+  .sev{font-size:9.5px;letter-spacing:var(--caps);border-radius:5px;padding:4px 8px;margin-top:3px}
+  .fixrow{padding:20px 0;gap:16px}
+  .fixtitle{font-size:15px;letter-spacing:-.005em}
+  .fixpts{font-family:var(--display);font-weight:800;font-size:22px;
+    letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1;
+    font-stretch:condensed;margin-bottom:2px}
+  .fixes-head .lift{font-variant-numeric:tabular-nums}
+  .fixlink{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:700}
 </style>
 </head>
 <body>
@@ -196,6 +339,7 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
       case '/api/niche':         return F.niche;
       case '/api/brand-index':   return search.includes('domain=') ? F.brand_index : F.brand_index_list;
       case '/api/tracked':       return F.tracked;
+      case '/api/overview':      return F.overview;
       case '/api/history':       return F.history;
       case '/api/prompts':       return F.prompts;          // list (GET) or save (POST) — read-only
       case '/api/prompts/delete':return F.prompts;
@@ -280,6 +424,28 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
     <div class="topbar"><span><b>Live tool</b> — analyze any page against AI citation-readiness signals.</span></div>
     {% endif %}
     <div class="body">
+      <div class="kpirow" id="kpirow">
+        <div class="kpi">
+          <div class="kpi-lbl">Brand Index</div>
+          <div class="kpi-num" id="kpi-bvi">—<span class="kpi-den">/100</span></div>
+          <div class="kpi-sub" id="kpi-bvi-sub">no runs yet</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Mention Rate</div>
+          <div class="kpi-num" id="kpi-mention">—<span class="kpi-den">%</span></div>
+          <div class="kpi-sub" id="kpi-mention-sub">latest sentiment run</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Pages Analyzed</div>
+          <div class="kpi-num" id="kpi-runs">—</div>
+          <div class="kpi-sub" id="kpi-runs-sub">across your workspace</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl">Last Pulse</div>
+          <div class="kpi-num kpi-date" id="kpi-pulse">—</div>
+          <div class="kpi-sub" id="kpi-pulse-sub">no activity yet</div>
+        </div>
+      </div>
       <div id="view-analyze" class="view">
       <h1>Analyze a page</h1>
       <p class="sub">Paste a URL. We read the page, score how quotable it is to AI answer engines, and show the fixes ranked by impact.</p>
@@ -350,16 +516,22 @@ window.DEMO_FIXTURES = {{ demo_fixtures|tojson }};
 
       <div id="view-competitors" class="view hidden">
         <h1>Competitor citations</h1>
-        <p class="sub">Enter your domain and a few questions your customers ask. We ask Claude each one with live web search and show which sites are winning the citations.</p>
+        <p class="sub">Enter your domain and a few questions your customers ask. We ask each answer engine the same questions with live web search and show which sites are winning the citations - and on which engine.</p>
         <div class="searchcard" style="flex-direction:column;gap:12px;align-items:stretch">
           <input id="c-target" type="text" placeholder="your domain, e.g. yoursite.com">
           <textarea id="c-queries" rows="4" placeholder="One question per line, e.g.&#10;how do I descale a coffee maker&#10;best way to remove limescale from a kettle" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;resize:vertical"></textarea>
           <div style="display:flex;gap:8px"><button class="ghost" id="c-load-hub">Load from Hub</button><button class="ghost" id="c-save-hub">Save these to Hub</button></div>
+          <div style="display:flex;gap:16px;align-items:center">
+            <span class="cur">Ask:</span>
+            <label class="cur" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="c-eng-claude" checked> Claude</label>
+            <label class="cur" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="c-eng-gemini" checked> Gemini</label>
+          </div>
           <div><button class="primary" id="c-go">Run citation check</button>
-          <span class="cur" style="margin-left:10px">Live web searches - a few queries can take a couple of minutes. Up to 10 questions run per check.</span></div>
+          <span class="cur" style="margin-left:10px">Live web searches - a few queries can take a couple of minutes, and each engine adds a pass. Up to 10 questions run per check.</span></div>
           <div class="cur hidden" id="c-cap-note" style="color:#b45309"></div>
         </div>
         <div id="c-err" class="err hidden"></div>
+        <div class="cur hidden" id="c-skipped" style="color:#b45309;margin-bottom:12px"></div>
         <div id="c-results" class="hidden">
           <div class="card">
             <h2>Your citation rate</h2>
@@ -750,6 +922,7 @@ async function analyze(){
     const data = await res.json();
     if(!res.ok){ showErr(data.error || 'Analysis failed.'); return; }
     render(data);
+    loadOverview();
   }catch(e){ showErr('Network error: '+e.message); }
   finally{ setBusy($('go'), false, 'Analyze'); }
 }
@@ -797,17 +970,29 @@ function render(r){
 
   const lift = (r.priorities||[]).reduce((s,f)=>s+(f.potential_gain||0), 0);
   $('lift').textContent = lift ? `est. lift if all applied · +${lift} pts` : 'every signal at full marks';
-  $('fixes').innerHTML = (r.priorities||[]).map((f,i)=>`
-    <div class="item">
-      <div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(f.label)}</span><span class="gain">+${f.potential_gain} pts</span></div>
-      <div class="cur">Currently ${f.current_score}/${f.max}</div>
-      ${bar(f.current_score, f.max)}
-      <p class="action">${escapeHtml(f.action)}</p>
-      ${f.specifics && f.specifics.length ? '<ul class="spec">'+f.specifics.map(s=>`<li>${escapeHtml(s)}</li>`).join('')+'</ul>' : ''}
-    </div>`).join('') || '<p>No fixes needed - every factor is at full marks.</p>';
+  $('fixes').innerHTML = (r.priorities||[]).map(f=>{
+    const sev = f.potential_gain>=5 ? ['high','HIGH'] : (f.potential_gain>=2 ? ['med','MED'] : ['low','LOW']);
+    const detail = [f.action, ...(f.specifics||[])].filter(Boolean).map(escapeHtml).join(' ');
+    return `<div class="fixrow">
+      <span class="sev ${sev[0]}">${sev[1]}</span>
+      <div class="fixmain">
+        <div class="fixtitle">${escapeHtml(f.label)}</div>
+        <p class="fixdesc">${detail}</p>
+      </div>
+      <div class="fixright"><span class="fixpts">+${f.potential_gain} pts</span><a class="fixlink" onclick="fixIt()">Fix it →</a></div>
+    </div>`;
+  }).join('') || '<p style="padding-top:16px">No fixes needed - every factor is at full marks.</p>';
 
   if(r.schema){ $('schemaType').textContent = 'Detected type: '+(r.schema.detected_type||''); $('schema').textContent = r.schema.ready_to_paste||''; }
   $('results').classList.remove('hidden');
+}
+
+// "Fix it ->" on a ranked fix: land on Rewrite (the apply-the-fix action) with
+// the URL prefilled. Doesn't auto-run - Rewrite spends API credit.
+function fixIt(){
+  const url = $('url').value.trim();
+  if(url) $('rw-url').value = url;
+  showView('rewrite');
 }
 
 async function rewrite(){
@@ -1015,15 +1200,31 @@ function renderSentiment(d){
 }
 
 // --- competitors ---
+const ENGINE_META = {
+  claude: {label:'Claude', color:'#7c3aed'},
+  gemini: {label:'Gemini', color:'#2563eb'},
+};
+function engineBadge(name){
+  const meta = ENGINE_META[name] || {label:name, color:'#64748b'};
+  return `<span class="pill" style="background:${meta.color}">${escapeHtml(meta.label)}</span>`;
+}
+function selectedEngines(){
+  const picked = [];
+  if($('c-eng-claude').checked) picked.push('claude');
+  if($('c-eng-gemini').checked) picked.push('gemini');
+  return picked;
+}
 async function runCompetitors(){
   const target = $('c-target').value.trim();
   const queries = $('c-queries').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const engines = selectedEngines();
   if(!target){ cErr('Enter your domain.'); return; }
   if(!queries.length){ cErr('Enter at least one question.'); return; }
-  $('c-err').classList.add('hidden'); $('c-results').classList.add('hidden');
+  if(!engines.length){ cErr('Pick at least one answer engine.'); return; }
+  $('c-err').classList.add('hidden'); $('c-results').classList.add('hidden'); $('c-skipped').classList.add('hidden');
   setBusy($('c-go'), true, 'Running live searches…');
   try{
-    const res = await fetch('/api/competitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,queries})});
+    const res = await fetch('/api/competitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,queries,engines})});
     const data = await res.json();
     if(!res.ok){ cErr(data.error || 'Failed.'); return; }
     renderCompetitors(data);
@@ -1032,12 +1233,27 @@ async function runCompetitors(){
 }
 function renderCompetitors(d){
   $('c-rate').textContent = d.target_cited + ' / ' + d.queries;
-  $('c-rate-note').textContent = d.target_cited>0
+  const perEngine = (d.engines||[]).map(e=>`${ENGINE_META[e.name]?.label || e.name}: ${e.cited}/${d.queries}`).join(' · ');
+  const headline = d.target_cited>0
     ? `${d.target} was cited for ${d.target_cited} of ${d.queries} queries.`
     : `${d.target} was not cited for any of the ${d.queries} queries - that gap is the opportunity.`;
+  $('c-rate-note').textContent = perEngine ? `${headline} By engine - ${perEngine}.` : headline;
+
+  // A skipped engine means half the answer is missing, so say so rather than
+  // quietly returning a thinner result.
+  const skipped = d.skipped||[];
+  const note = $('c-skipped');
+  if(skipped.length){
+    note.textContent = skipped.map(s=>`${s.label||s.name} did not run: ${s.reason}`).join(' ');
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
+  }
+
   const rows = (d.competitors||[]).filter(c=>!c.is_target).slice(0,15);
   $('c-table').innerHTML = rows.map((c,i)=>`
-    <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(c.domain)}</span>
+    <div class="item"><div class="item-h"><span><b>${i+1}.</b> ${escapeHtml(c.domain)}
+    ${(c.engines||[]).map(engineBadge).join(' ')}</span>
     <span class="gain">${c.cited_in}/${d.queries} queries</span></div>${bar(c.cited_in, d.queries)}</div>`).join('')
     || '<p>No competing domains found.</p>';
   $('c-results').classList.remove('hidden');
@@ -1368,6 +1584,28 @@ $('mo-pulse').addEventListener('click', runMonitorPulse);
 $('mo-clear').addEventListener('click', clearAlerts);
 refreshAlertBadge();
 
+// --- top KPI header row: workspace snapshot ---
+function fmtPulse(iso){
+  if(!iso) return '—';
+  const d = new Date(iso.replace(' ','T'));
+  if(isNaN(d)) return String(iso).slice(0,10);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+async function loadOverview(){
+  try{
+    const o = await (await fetch('/api/overview')).json();
+    $('kpi-bvi').innerHTML = (o.bvi==null?'—':o.bvi) + '<span class="kpi-den">/100</span>';
+    $('kpi-bvi-sub').textContent = o.pages_analyzed ? 'mean of latest page scores' : 'no runs yet';
+    $('kpi-mention').innerHTML = (o.mention_rate==null?'—':o.mention_rate) + '<span class="kpi-den">%</span>';
+    $('kpi-mention-sub').textContent = o.mention_rate==null ? 'run Sentiment to populate' : 'latest sentiment run';
+    $('kpi-runs').textContent = o.pages_analyzed || '—';
+    $('kpi-runs-sub').textContent = 'distinct pages across your workspace';
+    $('kpi-pulse').textContent = fmtPulse(o.last_pulse);
+    $('kpi-pulse-sub').textContent = o.last_pulse ? 'most recent activity' : 'no activity yet';
+  }catch(e){ /* leave the placeholder dashes on error */ }
+}
+loadOverview();
+
 // --- site-wide (batch) tab ---
 async function runBatch(){
   const target = $('ba-target').value.trim();
@@ -1647,8 +1885,9 @@ const DOCS = [
     <p><b>Why they win</b> lists every signal where the competitor scores higher, biggest gap first, each with the fix to apply and the specific problem found on your page. <b>Where you're ahead</b> shows the signals you already lead.</p>
     <p>Free - it reads both pages and reuses the Analyze scorer; no model call. Your page's score is also saved to History.</p>`},
   {id:'competitors', icon:'🏆', title:'Competitors', html:`
-    <p>Enter your domain and a few questions your customers ask. CitePilot asks Claude each question with live web search and shows which domains win the citations, and how often yours does.</p>
-    <p>Slow (live search) and consumes API credit. Results are saved to History.</p>`},
+    <p>Enter your domain and a few questions your customers ask. CitePilot asks each answer engine every question with live web search and shows which domains win the citations, and how often yours does.</p>
+    <p>Two engines ship today - <b>Claude</b> (web search) and <b>Gemini</b> (Google Search grounding). They return noticeably different sources, so a badge on each row shows which engine cited that domain. Untick one to halve the time and cost.</p>
+    <p>Slow (live search) and consumes API credit on every ticked engine. Results are saved to History.</p>`},
   {id:'sentiment', icon:'💬', title:'Sentiment', html:`
     <p>Enter your brand and a few questions. CitePilot gets each AI answer, then classifies whether your brand is mentioned and how it's portrayed - positive, neutral, or negative - with a quoted piece of evidence.</p>
     <p>Two Claude calls per question. Results are saved to History.</p>`},
@@ -1680,8 +1919,9 @@ const DOCS = [
     </ul>
     <p>The dashboard orchestrates them; you can also run any phase alone from the command line.</p>`},
   {id:'keys', icon:'🔑', title:'API keys & cost', html:`
-    <p>Rule-based tabs are free. Model-backed tabs need an Anthropic API key, set in the environment or a gitignored <code>.env</code> file:</p>
-    <p><code>ANTHROPIC_API_KEY=sk-ant-...</code></p>
+    <p>Rule-based tabs are free. Model-backed tabs need API keys, set in the environment or a gitignored <code>.env</code> file:</p>
+    <p><code>ANTHROPIC_API_KEY=sk-ant-...</code><br><code>GEMINI_API_KEY=...</code></p>
+    <p>Anthropic is required. Gemini is optional and only used by Competitors - without it, citation checks run Claude-only and say so.</p>
     <p><b>Free:</b> Analyze, AEO Audit, Schema, Report, History.<br><b>Costs credit:</b> Rewrite, Competitors, Sentiment.</p>`},
 ];
 let docsCurrent = DOCS[0].id;

@@ -30,21 +30,11 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from common import DEFAULT_MODEL, slugify
+from common import DEFAULT_MODEL, load_dotenv, slugify
+from ingest import count_markdown_structure
+from payload import validate_payload as _validate_payload
 
 DEFAULT_MAX_TOKENS = 16000
-
-REQUIRED_FIELDS = {
-    "source": str,
-    "title": str,
-    "meta_description": (str, type(None)),
-    "headers": list,
-    "body_text": str,
-    "existing_schema": (str, type(None)),
-    "published_date": (str, type(None)),
-    "updated_date": (str, type(None)),
-    "word_count": int,
-}
 
 # The model returns this shape; structured outputs guarantee it validates.
 REWRITE_SCHEMA = {
@@ -79,8 +69,6 @@ REWRITE_SCHEMA = {
             },
         },
         "key_facts": {"type": "array", "items": {"type": "string"}},
-        "list_count": {"type": "integer"},
-        "table_count": {"type": "integer"},
         "changes": {"type": "array", "items": {"type": "string"}},
     },
     "required": [
@@ -91,8 +79,6 @@ REWRITE_SCHEMA = {
         "body_text",
         "faq",
         "key_facts",
-        "list_count",
-        "table_count",
         "changes",
     ],
     "additionalProperties": False,
@@ -125,26 +111,6 @@ class RewriterError(Exception):
     pass
 
 
-def load_dotenv(path: str = ".env") -> None:
-    """Load KEY=VALUE lines from a local .env into the environment.
-
-    Values already set in the real environment win, so an explicit export is
-    never overridden. Kept dependency-free on purpose.
-    """
-    env_path = Path(path)
-    if not env_path.is_file():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        key = key.strip()
-        value = value.strip().strip("'").strip('"')
-        if key and key not in os.environ:
-            os.environ[key] = value
-
-
 def load_json(path: str, label: str) -> dict[str, Any]:
     input_path = Path(path)
     if not input_path.exists():
@@ -162,19 +128,7 @@ def load_json(path: str, label: str) -> dict[str, Any]:
 
 
 def validate_payload(payload: Any) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        raise RewriterError("Input JSON must be an object.")
-    missing = [field for field in REQUIRED_FIELDS if field not in payload]
-    if missing:
-        raise RewriterError(f"Input JSON is missing required fields: {', '.join(missing)}")
-    for field, expected_type in REQUIRED_FIELDS.items():
-        value = payload[field]
-        if not isinstance(value, expected_type):
-            if field in {"meta_description", "existing_schema", "published_date", "updated_date"} and value is None:
-                continue
-            type_name = expected_type if isinstance(expected_type, tuple) else expected_type.__name__
-            raise RewriterError(f"Field '{field}' has the wrong type; expected {type_name}.")
-    return payload
+    return _validate_payload(payload, RewriterError)
 
 
 def summarize_weaknesses(analysis: dict[str, Any]) -> list[str]:
@@ -230,10 +184,10 @@ def build_user_prompt(payload: dict[str, Any], weaknesses: list[str]) -> str:
 
     parts += [
         "",
-        "Return the rewrite via the structured output schema. In `list_count` "
-        "and `table_count`, report how many distinct lists and tables your "
-        "rewritten body actually contains, and reflect that structure in "
-        "`body_text`. In `changes`, briefly note what you improved and why.",
+        "Return the rewrite via the structured output schema. Express lists and "
+        "tables as real Markdown in `body_text` — they are counted from the "
+        "markup, not from any number you report. In `changes`, briefly note "
+        "what you improved and why.",
     ]
     return "\n".join(parts)
 
@@ -284,6 +238,7 @@ def assemble_rewritten_payload(source_payload: dict[str, Any], rewrite: dict[str
         for h in rewrite.get("headers", [])
         if isinstance(h, dict) and "level" in h and "text" in h
     ]
+    list_count, table_count = count_markdown_structure(body_text.splitlines())
     return {
         "source": source_payload["source"],
         "title": str(rewrite.get("title") or source_payload["title"]),
@@ -294,8 +249,12 @@ def assemble_rewritten_payload(source_payload: dict[str, Any], rewrite: dict[str
         "published_date": source_payload.get("published_date"),
         "updated_date": source_payload.get("updated_date"),
         "word_count": len(body_text.split()),
-        "list_count": max(0, int(rewrite.get("list_count", 0) or 0)),
-        "table_count": max(0, int(rewrite.get("table_count", 0) or 0)),
+        # Counted from the rewritten Markdown, never taken from the model's own
+        # report. score_list_table_presence grades this factor, and the rewrite
+        # is the thing being graded — a self-reported number would let it claim
+        # its own score lift. Every other path derives these by parsing markup.
+        "list_count": list_count,
+        "table_count": table_count,
     }
 
 

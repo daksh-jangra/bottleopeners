@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from audit import _negative_issue
+from audit import first_issue
 from rubric import FACTOR_LABELS, RECOMMENDATIONS
 
 
@@ -29,7 +29,7 @@ def _factor_row(key: str, label: str, you_section: dict, them_section: dict) -> 
         "leader": "them" if lead > 0 else ("you" if lead < 0 else "tie"),
         "recommendation": RECOMMENDATIONS.get(key, ""),
         # the single most relevant problem on YOUR page for this factor (or None)
-        "your_issue": _negative_issue(you_section),
+        "your_issue": first_issue(you_section),
     }
 
 

@@ -5,17 +5,20 @@ domain shows up in the sources they cite. This is the "did it actually work"
 verification step: run it before and after optimizing a page to see whether
 the page starts getting cited.
 
-Providers are pluggable. Claude works today via its web-search tool. Other
-engines are registered as drop-in slots that activate once their API keys are
-present; Google AI Overviews is registered but cannot be tested (no public API).
+Providers are pluggable. Claude works via its web-search tool and Gemini via
+Google Search grounding; the two return noticeably different source sets, so
+running both is the point. Other engines are registered as drop-in slots that
+activate once their API keys are present.
 
 Usage:
   python harness.py --target example.com --query "how to descale a coffee maker"
   python harness.py --target example.com --from-rewrite ./output/rewritten/<slug>.json
   python harness.py --target example.com --query "..." --provider claude --dry-run
+  python harness.py --target example.com --query "..." --provider claude --provider gemini
   python harness.py --list-providers
 
-Needs ANTHROPIC_API_KEY (env or a gitignored .env) for the Claude provider.
+Needs ANTHROPIC_API_KEY for the Claude provider and GEMINI_API_KEY for Gemini
+(env or a gitignored .env); each provider is skipped when its key is absent.
 Each query costs a small amount (web search + tokens), so use --dry-run to
 preview what would run without spending anything.
 """
@@ -30,18 +33,23 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 from urllib.parse import urlparse
 
-from common import CLASSIFIER_MODEL, DEFAULT_MODEL, load_dotenv, slugify
+from common import CLASSIFIER_MODEL, DEFAULT_MODEL, GEMINI_MODEL, load_dotenv, slugify
 
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search"}
 
+# Gemini's grounding chunks never carry the source URL - every `uri` points at
+# this redirector instead. Anything that normalizes to this host is a failure to
+# resolve the real one, not a citation.
+GEMINI_REDIRECT_HOST = "vertexaisearch.cloud.google.com"
+
 # The harness must behave like a real answer engine that consults the web before
-# answering. Without this, Claude answers common questions from memory and never
-# searches, so there is nothing to check for citation.
+# answering. Without this, the model answers common questions from memory and
+# never searches, so there is nothing to check for citation. Worded without
+# naming a specific tool so both providers can share it.
 SEARCH_SYSTEM_PROMPT = (
-    "You are a research assistant answering a user's question. Always use the "
-    "web_search tool to find current, authoritative sources before you answer, "
-    "even for familiar topics. Base your answer on the pages you find and cite "
-    "them."
+    "You are a research assistant answering a user's question. Always search the "
+    "web to find current, authoritative sources before you answer, even for "
+    "familiar topics. Base your answer on the pages you find and cite them."
 )
 
 
@@ -93,8 +101,8 @@ def queries_from_rewrite(path: str) -> list[str]:
 
 # --- Providers ---------------------------------------------------------------
 
-def run_claude(query: str, model: str) -> tuple[list[str], str]:
-    """Ask Claude the query with web search on; return (result URLs, answer text)."""
+def run_claude(query: str, model: str = DEFAULT_MODEL) -> tuple[list[str], str]:
+    """Ask Claude the query with web search on; return (source URLs, answer text)."""
     try:
         import anthropic
     except ImportError as exc:
@@ -128,6 +136,79 @@ def run_claude(query: str, model: str) -> tuple[list[str], str]:
         elif btype == "text":
             answer_parts.append(getattr(block, "text", ""))
     return urls, " ".join(answer_parts).strip()
+
+
+def _resolve_redirect(uri: str) -> str:
+    """Follow a grounding redirect to whatever host it actually lands on."""
+    # ponytail: one serial HEAD per unresolved chunk. Most chunks resolve from
+    # `title` for free, so this stays rare; thread it if a 10-query run drags.
+    import requests
+
+    try:
+        response = requests.head(uri, allow_redirects=True, timeout=10)
+        return normalize_domain(response.url)
+    except requests.RequestException:
+        return ""
+
+
+def _grounding_host(web: Any) -> str:
+    """The real host behind one Gemini grounding chunk.
+
+    Gemini hands back a redirector for `uri` and only populates `domain` on
+    Vertex, so the host normally has to come out of `title` - which is usually
+    the bare host ("faber.co.in") but sometimes just a name ("aljazeera"). The
+    dot/space test separates those two shapes; anything it rejects costs one
+    redirect lookup.
+    """
+    for candidate in (getattr(web, "domain", None), getattr(web, "title", None)):
+        host = normalize_domain(str(candidate or ""))
+        if host and "." in host and " " not in host and host != GEMINI_REDIRECT_HOST:
+            return host
+    uri = getattr(web, "uri", "") or ""
+    if not uri:
+        return ""
+    host = _resolve_redirect(uri)
+    # A redirect that never left Google resolved nothing; counting it would
+    # credit the redirector for every citation on the query.
+    return "" if host == GEMINI_REDIRECT_HOST else host
+
+
+def run_gemini(query: str, model: str = GEMINI_MODEL) -> tuple[list[str], str]:
+    """Ask Gemini the query with Google Search grounding on.
+
+    Returns (source hosts, answer text). Unlike `run_claude` these are bare
+    hosts rather than full URLs, because Gemini never exposes the source URL -
+    see `_grounding_host`. Both `normalize_domain` and `domains_match` accept
+    either form, so callers do not have to care which provider they got.
+    """
+    try:
+        from google import genai
+        from google.genai import types
+    except ImportError as exc:
+        raise HarnessError("The 'google-genai' package is not installed. Run: pip install google-genai") from exc
+
+    client = genai.Client()
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=query,
+            config=types.GenerateContentConfig(
+                system_instruction=SEARCH_SYSTEM_PROMPT,
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+            ),
+        )
+    except Exception as exc:
+        raise HarnessError(f"Gemini API request failed: {exc}") from exc
+
+    hosts: list[str] = []
+    for candidate in getattr(response, "candidates", None) or []:
+        metadata = getattr(candidate, "grounding_metadata", None)
+        for chunk in getattr(metadata, "grounding_chunks", None) or []:
+            web = getattr(chunk, "web", None)
+            host = _grounding_host(web) if web is not None else ""
+            if host:
+                hosts.append(host)
+    return hosts, (getattr(response, "text", "") or "").strip()
 
 
 # --- Niche Explorer: suggest customer questions to test -----------------------
@@ -384,33 +465,38 @@ def run_persona_fanout(brand: str, query: str, personas: list[dict[str, str]],
     return {"brand": brand, "query": query, "rows": rows, "summary": summarize_personas(rows)}
 
 
-# Each provider: label, the env var its key lives in, and a runner (None = not
-# yet wired up). Slots are registered even when unimplemented so the pluggable
-# design is explicit and the report can show what's covered vs. not.
+# Each provider: label, the env var its key lives in, a runner (None = not yet
+# wired up), and the model it runs (None = use the caller's). Slots are
+# registered even when unimplemented so the pluggable design is explicit and the
+# report can show what's covered vs. not.
 PROVIDERS: dict[str, dict[str, Any]] = {
     "claude": {
         "label": "Claude (web search)",
         "env": "ANTHROPIC_API_KEY",
         "runner": run_claude,
+        "model": None,
+        "note": "",
+    },
+    "gemini": {
+        "label": "Gemini (Google Search)",
+        "env": "GEMINI_API_KEY",
+        "runner": run_gemini,
+        "model": GEMINI_MODEL,
         "note": "",
     },
     "openai": {
         "label": "ChatGPT / OpenAI",
         "env": "OPENAI_API_KEY",
         "runner": None,
+        "model": None,
         "note": "Runner not implemented yet; add an OpenAI module when a key is available.",
     },
     "perplexity": {
         "label": "Perplexity",
         "env": "PERPLEXITY_API_KEY",
         "runner": None,
+        "model": None,
         "note": "Runner not implemented yet; add a Perplexity module when a key is available.",
-    },
-    "google": {
-        "label": "Google AI Overviews",
-        "env": None,
-        "runner": None,
-        "note": "No public API - AI Overviews cannot be tested programmatically.",
     },
 }
 
@@ -436,10 +522,13 @@ def run_provider(name: str, queries: list[str], target: str, model: str) -> dict
         return result
 
     runner: Callable[[str, str], tuple[list[str], str]] = spec["runner"]
+    # A provider pinned to its own model ignores the caller's --model, which
+    # only ever names a Claude model.
+    provider_model = spec.get("model") or model
     per_query: list[dict[str, Any]] = []
     cited_count = 0
     for query in queries:
-        urls, answer = runner(query, model)
+        urls, answer = runner(query, provider_model)
         cited = any(domains_match(target, u) for u in urls)
         if cited:
             cited_count += 1

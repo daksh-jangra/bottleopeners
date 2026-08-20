@@ -12,3 +12,9 @@ citepilot.db
 
 # Editor / tooling
 .claude/
+
+# Local virtualenv
+.venv/
+
+# macOS
+.DS_Store

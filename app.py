@@ -357,9 +357,15 @@ def api_rewrite():
         return _server_error(exc)
 
 
+# Answer engines a citation check runs by default. Each one is an independent
+# view of who gets cited, and they disagree often enough that running both is
+# the point of the feature.
+DEFAULT_ENGINES = ["claude", "gemini"]
+
+
 @app.post("/api/competitors")
 def api_competitors():
-    from collections import Counter
+    from collections import Counter, defaultdict
 
     data = request.json or {}
     target = (data.get("target") or "").strip()
@@ -368,25 +374,76 @@ def api_competitors():
         queries = queries.splitlines()
     queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:MAX_QUERIES_PER_RUN]
 
+    requested = data.get("engines") or DEFAULT_ENGINES
+    if isinstance(requested, str):
+        requested = [requested]
+    requested = [e for e in requested if e in harness.PROVIDERS]
+
     if not target:
         return jsonify({"error": "Enter your domain."}), 400
     if not queries:
         return jsonify({"error": "Enter at least one question."}), 400
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run citation checks."}), 400
+    if not requested:
+        return jsonify({"error": "Pick at least one answer engine."}), 400
+
+    # An engine without a key is dropped with its reason rather than failing the
+    # whole check - one working engine is still a useful result.
+    active: list[str] = []
+    skipped: list[dict[str, str]] = []
+    for name in requested:
+        available, reason = harness.provider_availability(name)
+        if available:
+            active.append(name)
+        else:
+            skipped.append({"name": name, "label": harness.PROVIDERS[name]["label"], "reason": reason})
+    if not active:
+        detail = " ".join(s["reason"] for s in skipped)
+        return jsonify({"error": f"No answer engine is available. {detail}"}), 400
 
     try:
         target_norm = harness.normalize_domain(target)
         counts: Counter = Counter()
+        engines_by_domain: dict[str, set[str]] = defaultdict(set)
+        per_engine_cited: Counter = Counter()
         target_cited = 0
+
         for query in queries:
-            urls, _answer = harness.run_claude(query, DEFAULT_MODEL)
-            for domain in {harness.normalize_domain(u) for u in urls if harness.normalize_domain(u)}:
+            seen_this_query: set[str] = set()
+            cited_this_query = False
+            for name in list(active):
+                spec = harness.PROVIDERS[name]
+                try:
+                    urls, _answer = spec["runner"](query, spec.get("model") or DEFAULT_MODEL)
+                except harness.HarnessError as exc:
+                    # Retire the engine for the rest of the run instead of losing
+                    # the queries the other engine already answered.
+                    active.remove(name)
+                    skipped.append({"name": name, "label": spec["label"], "reason": str(exc)})
+                    continue
+                domains = {harness.normalize_domain(u) for u in urls}
+                domains.discard("")
+                seen_this_query |= domains
+                for domain in domains:
+                    engines_by_domain[domain].add(name)
+                if any(harness.domains_match(target_norm, u) for u in urls):
+                    per_engine_cited[name] += 1
+                    cited_this_query = True
+            for domain in seen_this_query:
                 counts[domain] += 1
-            if any(harness.domains_match(target_norm, u) for u in urls):
+            if cited_this_query:
                 target_cited += 1
+
+        if not active:
+            detail = " ".join(s["reason"] for s in skipped)
+            return jsonify({"error": f"Every answer engine failed. {detail}"}), 400
+
         competitors = [
-            {"domain": d, "cited_in": c, "is_target": d == target_norm or d.endswith("." + target_norm)}
+            {
+                "domain": d,
+                "cited_in": c,
+                "is_target": d == target_norm or d.endswith("." + target_norm),
+                "engines": sorted(engines_by_domain[d]),
+            }
             for d, c in counts.most_common()
         ]
         result = {
@@ -394,8 +451,15 @@ def api_competitors():
             "queries": len(queries),
             "target_cited": target_cited,
             "competitors": competitors,
+            "engines": [
+                {"name": n, "label": harness.PROVIDERS[n]["label"], "cited": per_engine_cited[n]}
+                for n in active
+            ],
+            "skipped": skipped,
         }
         # Headline number for the trend line: citation rate as a percentage.
+        # Still "queries where the target was cited at all", so the score stays
+        # comparable with runs recorded before Gemini existed.
         rate = round(100 * target_cited / len(queries)) if queries else 0
         db.save_run("competitors", target_norm, rate, result)
         _snapshot_bvi(target_norm)
@@ -654,6 +718,37 @@ def api_report():
 @app.get("/api/tracked")
 def api_tracked():
     return jsonify({"targets": db.tracked_targets()})
+
+
+@app.get("/api/overview")
+def api_overview():
+    """Workspace snapshot for the KPI header row: a Brand Visibility Index
+    (mean of each domain's latest analyze score), the latest mention rate,
+    how many distinct pages have been analyzed, and the last activity time.
+    Every field degrades to null when there is no data yet."""
+    analyze_runs = db.runs_by_kind("analyze")
+    mention_runs = db.runs_by_kind("mention")
+
+    latest_by_target: dict[str, int] = {}
+    for run in analyze_runs:  # newest-first, so the first score per target wins
+        score = run.get("score")
+        if run["target"] not in latest_by_target and score is not None:
+            latest_by_target[run["target"]] = score
+    bvi = round(sum(latest_by_target.values()) / len(latest_by_target)) if latest_by_target else None
+
+    mention_rate = next((r["score"] for r in mention_runs if r.get("score") is not None), None)
+
+    all_times = [r["created_at"] for r in (analyze_runs + mention_runs
+                 + db.runs_by_kind("competitors") + db.runs_by_kind("sentiment"))
+                 if r.get("created_at")]
+    last_pulse = max(all_times) if all_times else None
+
+    return jsonify({
+        "bvi": bvi,
+        "mention_rate": mention_rate,
+        "pages_analyzed": len(latest_by_target),
+        "last_pulse": last_pulse,
+    })
 
 
 @app.post("/api/history")

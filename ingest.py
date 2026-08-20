@@ -24,7 +24,7 @@ import re
 import socket
 import sys
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -124,6 +124,79 @@ def extract_schema_blocks(soup: BeautifulSoup) -> Optional[str]:
     if not blocks:
         return None
     return "\n\n".join(blocks)
+
+
+def _author_name(value: Any) -> Optional[str]:
+    """Read a name out of a schema.org author value.
+
+    The value may be a bare string, a Person/Organization object with a name,
+    or a list of either — all three are valid schema.org.
+    """
+    if isinstance(value, str):
+        return normalize_whitespace(value) or None
+    if isinstance(value, dict):
+        return _author_name(value.get("name"))
+    if isinstance(value, list):
+        for item in value:
+            name = _author_name(item)
+            if name:
+                return name
+    return None
+
+
+def _schema_author_name(node: Any) -> Optional[str]:
+    """Find the first author/creator declared anywhere in one JSON-LD block.
+
+    A block is either a node, or a list of nodes, or a node wrapping @graph.
+    """
+    if isinstance(node, list):
+        for item in node:
+            name = _schema_author_name(item)
+            if name:
+                return name
+        return None
+    if not isinstance(node, dict):
+        return None
+    name = _author_name(node.get("author") or node.get("creator"))
+    if name:
+        return name
+    return _schema_author_name(node.get("@graph"))
+
+
+def extract_author(soup: BeautifulSoup, schema_text: Optional[str] = None) -> Optional[str]:
+    """Read the page's stated author, or None when the page never states one.
+
+    Byline scoring used to infer authorship by looking for the substring " by "
+    in the title and body, which fires on ordinary prose ("sorted by date").
+    Reading the field the page actually declares replaces a guess with a fact;
+    pages that declare nothing correctly score zero instead of accidentally.
+    """
+    for attrs in ({"name": "author"}, {"property": "article:author"}, {"name": "byl"}):
+        tag = soup.find("meta", attrs=attrs)
+        if tag and tag.get("content"):
+            name = normalize_whitespace(tag["content"])
+            # article:author is sometimes a profile URL rather than a name.
+            if name and not name.lower().startswith(("http://", "https://")):
+                return name
+
+    for block in (schema_text or "").split("\n\n"):
+        block = block.strip()
+        if not block:
+            continue
+        try:
+            name = _schema_author_name(json.loads(block))
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if name and not name.lower().startswith(("http://", "https://")):
+            return name
+
+    # rel="author" is the last common convention still in the wild.
+    tag = soup.find(attrs={"rel": "author"})
+    if tag:
+        name = normalize_whitespace(tag.get_text(" ", strip=True))
+        if name:
+            return name
+    return None
 
 
 def remove_unwanted_elements(soup: BeautifulSoup) -> None:
@@ -276,6 +349,7 @@ def extract_html_payload(html: str, source: str) -> dict[str, object]:
     ]) or "Untitled"
     meta_description = extract_meta_description(soup)
     existing_schema = extract_schema_blocks(soup)
+    author = extract_author(soup, existing_schema)
 
     # Isolate the real article, then read headers/structure/text from just that.
     content_root = extract_article_root(html, soup, title)
@@ -304,6 +378,7 @@ def extract_html_payload(html: str, source: str) -> dict[str, object]:
         "existing_schema": existing_schema,
         "published_date": published_date,
         "updated_date": updated_date,
+        "author": author,
         "word_count": len(body_text.split()),
         "list_count": list_count,
         "table_count": table_count,
@@ -390,6 +465,8 @@ def extract_markdown_payload(text: str, source: str) -> dict[str, object]:
         "existing_schema": None,
         "published_date": None,
         "updated_date": None,
+        # Plain Markdown carries no author metadata to read.
+        "author": None,
         "word_count": len(body_text.split()),
         "list_count": list_count,
         "table_count": table_count,
