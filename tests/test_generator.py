@@ -173,3 +173,57 @@ def test_generate_schema_merges_existing_schema():
     assert merge is not None
     assert merge["author"]["name"] == "Jane"  # existing detail carried through
     assert any("existing schema found" in n for n in notes)
+
+
+# --- author / publisher attribution -----------------------------------------
+
+def test_generate_schema_adds_org_author_and_publisher_when_page_has_none():
+    # A page that declares no author still gets a publisher (always known from
+    # the site) and an Organization author, rather than a blank byline signal.
+    p = payload(
+        title="Best Kitchen Chimneys in India - Faber India",
+        source="https://faberindia.com/?utm_source=x&gad_campaignid=1",
+        body_text="Chimneys keep the kitchen smoke-free.",
+        author=None,
+    )
+    generated, _notes, _merge = generator.generate_schema(p, "article")
+    assert generated["author"] == {"@type": "Organization", "name": "Faber India"}
+    assert generated["publisher"]["@type"] == "Organization"
+    assert generated["publisher"]["name"] == "Faber India"
+    # The publisher URL is the clean site root - tracking params are dropped.
+    assert generated["publisher"]["url"] == "https://faberindia.com/"
+
+
+def test_generate_schema_keeps_declared_person_author():
+    # When the page names a real writer, keep them as a Person; the publisher is
+    # still the site (brand read from the title's trailing segment).
+    p = payload(
+        title="How to pick a chimney | HomeGuide",
+        source="https://homeguide.example/guide",
+        body_text="Pick by suction and kitchen size.",
+        author="Rahul Sharma",
+    )
+    generated, _notes, _merge = generator.generate_schema(p, "article")
+    assert generated["author"] == {"@type": "Person", "name": "Rahul Sharma"}
+    assert generated["publisher"]["name"] == "HomeGuide"
+
+
+def test_generate_schema_attribution_present_on_faq_and_howto():
+    # The signal is emitted for every schema type, not just Article.
+    faq = payload(
+        title="Chimney FAQ - Faber India",
+        source="https://faberindia.com/",
+        headers=headers("How do I clean it?"),
+        body_text="How do I clean it? Run the auto-clean cycle.",
+    )
+    generated, _notes, _merge = generator.generate_schema(faq, "faq")
+    assert generated["publisher"]["name"] == "Faber India"
+
+    howto = payload(
+        title="Install a chimney - Faber India",
+        source="https://faberindia.com/",
+        headers=headers("Step 1: Mount", "Step 2: Vent"),
+        body_text="Step 1: Mount the bracket. Step 2: Connect the vent.",
+    )
+    generated, _notes, _merge = generator.generate_schema(howto, "howto")
+    assert generated["publisher"]["name"] == "Faber India"

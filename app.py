@@ -66,6 +66,42 @@ def _server_error(exc: Exception):
     return jsonify({"error": "Unexpected server error. Check the server logs."}), 500
 
 
+# In-flight guard for the expensive, uncancellable endpoints (competitor and
+# rewrite checks). The dev server is threaded and a request keeps running even
+# after the browser abandons it, so a double-click would otherwise fan out into
+# several concurrent multi-minute, API-billed runs for the same target. We track
+# the keys currently running and refuse a duplicate rather than stack it.
+_inflight_lock = threading.Lock()
+_inflight: set[str] = set()
+
+
+class _AlreadyRunning(Exception):
+    """Raised when a run for the same key is already in progress."""
+
+
+class _single_flight:
+    """Context manager that admits one run per key at a time.
+
+    Entering raises _AlreadyRunning if the key is already active; otherwise it
+    reserves the key and releases it on exit (including on error), so a failed
+    or finished run never leaves the key stuck.
+    """
+
+    def __init__(self, key: str) -> None:
+        self.key = key
+
+    def __enter__(self) -> "_single_flight":
+        with _inflight_lock:
+            if self.key in _inflight:
+                raise _AlreadyRunning(self.key)
+            _inflight.add(self.key)
+        return self
+
+    def __exit__(self, *exc_info: Any) -> None:
+        with _inflight_lock:
+            _inflight.discard(self.key)
+
+
 def _snapshot_bvi(target: str) -> None:
     """Recompute + snapshot the Brand Visibility Index after a component run.
 
@@ -318,37 +354,40 @@ def api_rewrite():
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to enable rewrites."}), 400
     try:
-        payload = _fetch_payload(url)
-        before = analyzer.build_analysis(payload)
-        weaknesses = rewriter.summarize_weaknesses(before)
-        req = rewriter.build_request(payload, weaknesses, DEFAULT_MODEL)
-        rewrite = rewriter.call_claude(req)
-        new_payload = rewriter.assemble_rewritten_payload(payload, rewrite)
-        after = analyzer.build_analysis(new_payload)
-        # Ship the fix: a clean, standalone page from the optimized content, with
-        # generated schema baked in. Same call - no extra model spend.
-        schema = _schema_for(new_payload)
-        title = str(new_payload.get("title") or "optimized-page")
-        page_html = export.build_standalone_page(
-            title=title,
-            body_text=new_payload.get("body_text", ""),
-            meta_description=new_payload.get("meta_description"),
-            answer_summary=rewrite.get("answer_summary"),
-            key_facts=rewrite.get("key_facts"),
-            faq=rewrite.get("faq"),
-            published_date=new_payload.get("published_date"),
-            updated_date=new_payload.get("updated_date"),
-            schema_script=schema["ready_to_paste"],
-        )
-        return jsonify({
-            "before": before["total_score"],
-            "after": after["total_score"],
-            "gain": after["total_score"] - before["total_score"],
-            "changes": rewrite.get("changes", []),
-            "new_title": new_payload.get("title"),
-            "page_html": page_html,
-            "filename": f"{slugify(title)}.html",
-        })
+        with _single_flight(f"rewrite:{url}"):
+            payload = _fetch_payload(url)
+            before = analyzer.build_analysis(payload)
+            weaknesses = rewriter.summarize_weaknesses(before)
+            req = rewriter.build_request(payload, weaknesses, DEFAULT_MODEL)
+            rewrite = rewriter.call_claude(req)
+            new_payload = rewriter.assemble_rewritten_payload(payload, rewrite)
+            after = analyzer.build_analysis(new_payload)
+            # Ship the fix: a clean, standalone page from the optimized content, with
+            # generated schema baked in. Same call - no extra model spend.
+            schema = _schema_for(new_payload)
+            title = str(new_payload.get("title") or "optimized-page")
+            page_html = export.build_standalone_page(
+                title=title,
+                body_text=new_payload.get("body_text", ""),
+                meta_description=new_payload.get("meta_description"),
+                answer_summary=rewrite.get("answer_summary"),
+                key_facts=rewrite.get("key_facts"),
+                faq=rewrite.get("faq"),
+                published_date=new_payload.get("published_date"),
+                updated_date=new_payload.get("updated_date"),
+                schema_script=schema["ready_to_paste"],
+            )
+            return jsonify({
+                "before": before["total_score"],
+                "after": after["total_score"],
+                "gain": after["total_score"] - before["total_score"],
+                "changes": rewrite.get("changes", []),
+                "new_title": new_payload.get("title"),
+                "page_html": page_html,
+                "filename": f"{slugify(title)}.html",
+            })
+    except _AlreadyRunning:
+        return jsonify({"error": "A rewrite for this page is already running. Wait for it to finish before starting another."}), 409
     except rewriter.RewriterError as exc:
         return jsonify({"error": str(exc)}), 400
     except ingest.IngestError as exc:
@@ -400,6 +439,11 @@ def api_competitors():
         detail = " ".join(s["reason"] for s in skipped)
         return jsonify({"error": f"No answer engine is available. {detail}"}), 400
 
+    guard_key = f"competitors:{harness.normalize_domain(target)}"
+    with _inflight_lock:
+        if guard_key in _inflight:
+            return jsonify({"error": "A citation check for this domain is already running. Wait for it to finish before starting another."}), 409
+        _inflight.add(guard_key)
     try:
         target_norm = harness.normalize_domain(target)
         counts: Counter = Counter()
@@ -468,6 +512,9 @@ def api_competitors():
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return _server_error(exc)
+    finally:
+        with _inflight_lock:
+            _inflight.discard(guard_key)
 
 
 @app.post("/api/teardown")
