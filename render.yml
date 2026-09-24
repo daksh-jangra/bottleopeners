@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: citepilot
+    runtime: python
+    buildCommand: pip install uv && uv sync --frozen
+    startCommand: uv run app.py

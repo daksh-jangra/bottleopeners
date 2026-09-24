@@ -116,7 +116,9 @@ def _snapshot_bvi(target: str) -> None:
 
 def _schema_for(payload: dict[str, Any]) -> dict[str, Any]:
     detected_type = generator.detect_type(payload, None)
-    generated, _notes, suggested_merge = generator.generate_schema(payload, detected_type)
+    generated, _notes, suggested_merge = generator.generate_schema(
+        payload, detected_type
+    )
     ready = generator.choose_ready_to_paste_schema(generated, suggested_merge)
     ready_json = json.dumps(ready, indent=2, ensure_ascii=False)
     return {
@@ -133,15 +135,32 @@ def _fetch_payload(url: str) -> dict[str, Any]:
 LANDING_DATA = {
     "app_url": "/app",
     "bars": [
-        {"name": "Answer-first structure", "score": "84", "pct": "84%", "color": "#1b5e40"},
+        {
+            "name": "Answer-first structure",
+            "score": "84",
+            "pct": "84%",
+            "color": "#1b5e40",
+        },
         {"name": "Citable claims", "score": "71", "pct": "71%", "color": "#1b5e40"},
         {"name": "Schema", "score": "48", "pct": "48%", "color": "#c98a2b"},
         {"name": "Entity clarity", "score": "90", "pct": "90%", "color": "#1b5e40"},
     ],
     "steps": [
-        {"n": "1", "title": "Paste a URL", "desc": "Any page — a guide, a product page, a doc. citepilot reads it the way an AI crawler does."},
-        {"n": "2", "title": "Get your score", "desc": "A single quotability score plus a breakdown across the five signals that matter."},
-        {"n": "3", "title": "Ship the fixes", "desc": "Schema, citation targets and rewrites, ranked by impact and ready to paste."},
+        {
+            "n": "1",
+            "title": "Paste a URL",
+            "desc": "Any page — a guide, a product page, a doc. citepilot reads it the way an AI crawler does.",
+        },
+        {
+            "n": "2",
+            "title": "Get your score",
+            "desc": "A single quotability score plus a breakdown across the five signals that matter.",
+        },
+        {
+            "n": "3",
+            "title": "Ship the fixes",
+            "desc": "Schema, citation targets and rewrites, ranked by impact and ready to paste.",
+        },
     ],
     "signals": [
         {"name": "Answer-first structure", "tag": "How you're read"},
@@ -213,10 +232,15 @@ def _analyze_url(url: str) -> dict[str, Any]:
         "lists": payload.get("list_count"),
         "tables": payload.get("table_count"),
     }
-    db.save_run("analyze", url, report["score"], {
-        "grade": report["grade"],
-        "title": payload.get("title"),
-    })
+    db.save_run(
+        "analyze",
+        url,
+        report["score"],
+        {
+            "grade": report["grade"],
+            "title": payload.get("title"),
+        },
+    )
     return report
 
 
@@ -287,7 +311,9 @@ def _discover_urls(target: str) -> list[str]:
         page_urls = list(parsed["urls"])
         for nested in parsed["sitemaps"][:MAX_NESTED_SITEMAPS]:
             try:
-                page_urls.extend(sitemap.parse_sitemap(ingest.fetch_url(nested))["urls"])
+                page_urls.extend(
+                    sitemap.parse_sitemap(ingest.fetch_url(nested))["urls"]
+                )
             except ingest.IngestError:
                 continue
         for url in page_urls:
@@ -315,8 +341,12 @@ def api_batch():
     except Exception as exc:
         return _server_error(exc)
     if not discovered:
-        return jsonify({"error": "Couldn't find a sitemap for that site. "
-                                 "Try the full sitemap.xml URL."}), 404
+        return jsonify(
+            {
+                "error": "Couldn't find a sitemap for that site. "
+                "Try the full sitemap.xml URL."
+            }
+        ), 404
 
     capped = discovered[:MAX_BATCH_URLS]
     results = []
@@ -324,26 +354,37 @@ def api_batch():
     for url in capped:
         try:
             report = _analyze_url(url)
-            results.append({"target": url, "score": report["score"], "grade": report["grade"], "ok": True})
+            results.append(
+                {
+                    "target": url,
+                    "score": report["score"],
+                    "grade": report["grade"],
+                    "ok": True,
+                }
+            )
             domains.add(harness.normalize_domain(url))
         except ingest.IngestError as exc:
             results.append({"target": url, "ok": False, "error": str(exc)})
         except Exception:  # one bad page shouldn't sink the whole batch
             app.logger.exception("Batch analyze failed for %s", url)
-            results.append({"target": url, "ok": False, "error": "Could not analyze this page."})
+            results.append(
+                {"target": url, "ok": False, "error": "Could not analyze this page."}
+            )
 
     for domain in domains:  # one brand-index snapshot per site, not per page
         _snapshot_bvi(domain)
 
     analyzed = sum(1 for r in results if r["ok"])
-    return jsonify({
-        "target": target,
-        "found": len(discovered),
-        "analyzed": analyzed,
-        "capped": len(discovered) > MAX_BATCH_URLS,
-        "cap": MAX_BATCH_URLS,
-        "results": results,
-    })
+    return jsonify(
+        {
+            "target": target,
+            "found": len(discovered),
+            "analyzed": analyzed,
+            "capped": len(discovered) > MAX_BATCH_URLS,
+            "cap": MAX_BATCH_URLS,
+            "results": results,
+        }
+    )
 
 
 @app.post("/api/rewrite")
@@ -352,7 +393,11 @@ def api_rewrite():
     if not url:
         return jsonify({"error": "Enter a page URL."}), 400
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to enable rewrites."}), 400
+        return jsonify(
+            {
+                "error": "ANTHROPIC_API_KEY is not set; add it to .env to enable rewrites."
+            }
+        ), 400
     try:
         with _single_flight(f"rewrite:{url}"):
             payload = _fetch_payload(url)
@@ -377,17 +422,23 @@ def api_rewrite():
                 updated_date=new_payload.get("updated_date"),
                 schema_script=schema["ready_to_paste"],
             )
-            return jsonify({
-                "before": before["total_score"],
-                "after": after["total_score"],
-                "gain": after["total_score"] - before["total_score"],
-                "changes": rewrite.get("changes", []),
-                "new_title": new_payload.get("title"),
-                "page_html": page_html,
-                "filename": f"{slugify(title)}.html",
-            })
+            return jsonify(
+                {
+                    "before": before["total_score"],
+                    "after": after["total_score"],
+                    "gain": after["total_score"] - before["total_score"],
+                    "changes": rewrite.get("changes", []),
+                    "new_title": new_payload.get("title"),
+                    "page_html": page_html,
+                    "filename": f"{slugify(title)}.html",
+                }
+            )
     except _AlreadyRunning:
-        return jsonify({"error": "A rewrite for this page is already running. Wait for it to finish before starting another."}), 409
+        return jsonify(
+            {
+                "error": "A rewrite for this page is already running. Wait for it to finish before starting another."
+            }
+        ), 409
     except rewriter.RewriterError as exc:
         return jsonify({"error": str(exc)}), 400
     except ingest.IngestError as exc:
@@ -411,7 +462,9 @@ def api_competitors():
     queries = data.get("queries") or []
     if isinstance(queries, str):
         queries = queries.splitlines()
-    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:MAX_QUERIES_PER_RUN]
+    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][
+        :MAX_QUERIES_PER_RUN
+    ]
 
     requested = data.get("engines") or DEFAULT_ENGINES
     if isinstance(requested, str):
@@ -434,7 +487,13 @@ def api_competitors():
         if available:
             active.append(name)
         else:
-            skipped.append({"name": name, "label": harness.PROVIDERS[name]["label"], "reason": reason})
+            skipped.append(
+                {
+                    "name": name,
+                    "label": harness.PROVIDERS[name]["label"],
+                    "reason": reason,
+                }
+            )
     if not active:
         detail = " ".join(s["reason"] for s in skipped)
         return jsonify({"error": f"No answer engine is available. {detail}"}), 400
@@ -442,7 +501,11 @@ def api_competitors():
     guard_key = f"competitors:{harness.normalize_domain(target)}"
     with _inflight_lock:
         if guard_key in _inflight:
-            return jsonify({"error": "A citation check for this domain is already running. Wait for it to finish before starting another."}), 409
+            return jsonify(
+                {
+                    "error": "A citation check for this domain is already running. Wait for it to finish before starting another."
+                }
+            ), 409
         _inflight.add(guard_key)
     try:
         target_norm = harness.normalize_domain(target)
@@ -457,12 +520,16 @@ def api_competitors():
             for name in list(active):
                 spec = harness.PROVIDERS[name]
                 try:
-                    urls, _answer = spec["runner"](query, spec.get("model") or DEFAULT_MODEL)
+                    urls, _answer = spec["runner"](
+                        query, spec.get("model") or DEFAULT_MODEL
+                    )
                 except harness.HarnessError as exc:
                     # Retire the engine for the rest of the run instead of losing
                     # the queries the other engine already answered.
                     active.remove(name)
-                    skipped.append({"name": name, "label": spec["label"], "reason": str(exc)})
+                    skipped.append(
+                        {"name": name, "label": spec["label"], "reason": str(exc)}
+                    )
                     continue
                 domains = {harness.normalize_domain(u) for u in urls}
                 domains.discard("")
@@ -496,7 +563,11 @@ def api_competitors():
             "target_cited": target_cited,
             "competitors": competitors,
             "engines": [
-                {"name": n, "label": harness.PROVIDERS[n]["label"], "cited": per_engine_cited[n]}
+                {
+                    "name": n,
+                    "label": harness.PROVIDERS[n]["label"],
+                    "cited": per_engine_cited[n],
+                }
                 for n in active
             ],
             "skipped": skipped,
@@ -524,7 +595,9 @@ def api_teardown():
     your_url = (data.get("your_url") or "").strip()
     competitor_url = (data.get("competitor_url") or "").strip()
     if not your_url or not competitor_url:
-        return jsonify({"error": "Enter both your page URL and a competitor page URL."}), 400
+        return jsonify(
+            {"error": "Enter both your page URL and a competitor page URL."}
+        ), 400
 
     try:
         you_payload = _fetch_payload(your_url)
@@ -533,8 +606,13 @@ def api_teardown():
         them = analyzer.build_analysis(them_payload)
         result = teardown.compare(you, them)
         result["your"] = {"url": your_url, "title": you_payload.get("title")}
-        result["competitor"] = {"url": competitor_url, "title": them_payload.get("title")}
-        db.save_run("analyze", your_url, you["total_score"], {"title": you_payload.get("title")})
+        result["competitor"] = {
+            "url": competitor_url,
+            "title": them_payload.get("title"),
+        }
+        db.save_run(
+            "analyze", your_url, you["total_score"], {"title": you_payload.get("title")}
+        )
         _snapshot_bvi(your_url)
         return jsonify(result)
     except ingest.IngestError as exc:
@@ -551,14 +629,24 @@ def api_niche():
     industry = (data.get("industry") or "").strip()
 
     if not brand and not keywords:
-        return jsonify({"error": "Enter your brand/domain or some target keywords."}), 400
+        return jsonify(
+            {"error": "Enter your brand/domain or some target keywords."}
+        ), 400
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to suggest questions."}), 400
+        return jsonify(
+            {
+                "error": "ANTHROPIC_API_KEY is not set; add it to .env to suggest questions."
+            }
+        ), 400
 
     try:
         questions = harness.suggest_queries(brand, keywords, industry, CLASSIFIER_MODEL)
         if not questions:
-            return jsonify({"error": "Could not generate questions; try adding keywords or an industry."}), 400
+            return jsonify(
+                {
+                    "error": "Could not generate questions; try adding keywords or an industry."
+                }
+            ), 400
         return jsonify({"brand": brand, "questions": questions})
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
@@ -616,14 +704,20 @@ def api_sentiment():
     queries = data.get("queries") or []
     if isinstance(queries, str):
         queries = queries.splitlines()
-    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][:MAX_QUERIES_PER_RUN]
+    queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()][
+        :MAX_QUERIES_PER_RUN
+    ]
 
     if not brand:
         return jsonify({"error": "Enter your brand name."}), 400
     if not queries:
         return jsonify({"error": "Enter at least one question."}), 400
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run sentiment checks."}), 400
+        return jsonify(
+            {
+                "error": "ANTHROPIC_API_KEY is not set; add it to .env to run sentiment checks."
+            }
+        ), 400
     try:
         result = harness.run_sentiment(brand, queries, DEFAULT_MODEL)
         # Two trend lines from one run: positive-sentiment share (feeds the Brand
@@ -631,10 +725,17 @@ def api_sentiment():
         # latter is tracked as its own kind so it accrues history in Drift Watch.
         positive_pct = result.get("mix", {}).get("positive", {}).get("pct", 0)
         db.save_run("sentiment", brand, positive_pct, result)
-        db.save_run("mention", brand, result.get("mention_rate", 0), {
-            "queries": result.get("queries"),
-            "not_mentioned": result.get("mix", {}).get("not_mentioned", {}).get("count", 0),
-        })
+        db.save_run(
+            "mention",
+            brand,
+            result.get("mention_rate", 0),
+            {
+                "queries": result.get("queries"),
+                "not_mentioned": result.get("mix", {})
+                .get("not_mentioned", {})
+                .get("count", 0),
+            },
+        )
         _snapshot_bvi(brand)
         return jsonify(result)
     except harness.HarnessError as exc:
@@ -659,13 +760,19 @@ def api_persona():
     if not query:
         return jsonify({"error": "Enter a question to fan out."}), 400
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        return jsonify({"error": "ANTHROPIC_API_KEY is not set; add it to .env to run persona checks."}), 400
+        return jsonify(
+            {
+                "error": "ANTHROPIC_API_KEY is not set; add it to .env to run persona checks."
+            }
+        ), 400
 
     personas = harness.select_personas([str(k) for k in keys])
     if not personas:
         return jsonify({"error": "Pick at least one persona."}), 400
     try:
-        return jsonify(harness.run_persona_fanout(brand, query, personas, DEFAULT_MODEL))
+        return jsonify(
+            harness.run_persona_fanout(brand, query, personas, DEFAULT_MODEL)
+        )
     except harness.HarnessError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
@@ -702,19 +809,21 @@ def api_export():
         report = rubric.build_report(analysis, schema, None)
         injected = export.inject_schema(html, schema["ready_to_paste"])
         title = str(payload.get("title") or "page")
-        return jsonify({
-            "url": url,
-            "title": title,
-            "filename": f"{slugify(title)}.html",
-            "score": report["score"],
-            "grade": report["grade"],
-            "detected_type": schema["detected_type"],
-            "schema_script": schema["ready_to_paste"],
-            "patched_html": injected["patched_html"],
-            "location": injected["location"],
-            "replaced_existing": injected["replaced_existing"],
-            "fixes": report["priorities"],
-        })
+        return jsonify(
+            {
+                "url": url,
+                "title": title,
+                "filename": f"{slugify(title)}.html",
+                "score": report["score"],
+                "grade": report["grade"],
+                "detected_type": schema["detected_type"],
+                "schema_script": schema["ready_to_paste"],
+                "patched_html": injected["patched_html"],
+                "location": injected["location"],
+                "replaced_existing": injected["replaced_existing"],
+                "fixes": report["priorities"],
+            }
+        )
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
@@ -731,7 +840,9 @@ def api_audit():
         html = response.text
         payload = ingest.extract_html_payload(html, url)
         analysis = analyzer.build_analysis(payload)
-        result = audit.build_audit(payload, analysis, html, response.url, dict(response.headers))
+        result = audit.build_audit(
+            payload, analysis, html, response.url, dict(response.headers)
+        )
         return jsonify(result)
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
@@ -749,13 +860,15 @@ def api_report():
         analysis = analyzer.build_analysis(payload)
         schema = _schema_for(payload)
         report = rubric.build_report(analysis, schema, None)
-        return jsonify({
-            "title": payload.get("title"),
-            "score": report["score"],
-            "grade": report["grade"],
-            "status": report["status"],
-            "html": rubric.render_html(report),
-        })
+        return jsonify(
+            {
+                "title": payload.get("title"),
+                "score": report["score"],
+                "grade": report["grade"],
+                "status": report["status"],
+                "html": rubric.render_html(report),
+            }
+        )
     except ingest.IngestError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
@@ -781,21 +894,36 @@ def api_overview():
         score = run.get("score")
         if run["target"] not in latest_by_target and score is not None:
             latest_by_target[run["target"]] = score
-    bvi = round(sum(latest_by_target.values()) / len(latest_by_target)) if latest_by_target else None
+    bvi = (
+        round(sum(latest_by_target.values()) / len(latest_by_target))
+        if latest_by_target
+        else None
+    )
 
-    mention_rate = next((r["score"] for r in mention_runs if r.get("score") is not None), None)
+    mention_rate = next(
+        (r["score"] for r in mention_runs if r.get("score") is not None), None
+    )
 
-    all_times = [r["created_at"] for r in (analyze_runs + mention_runs
-                 + db.runs_by_kind("competitors") + db.runs_by_kind("sentiment"))
-                 if r.get("created_at")]
+    all_times = [
+        r["created_at"]
+        for r in (
+            analyze_runs
+            + mention_runs
+            + db.runs_by_kind("competitors")
+            + db.runs_by_kind("sentiment")
+        )
+        if r.get("created_at")
+    ]
     last_pulse = max(all_times) if all_times else None
 
-    return jsonify({
-        "bvi": bvi,
-        "mention_rate": mention_rate,
-        "pages_analyzed": len(latest_by_target),
-        "last_pulse": last_pulse,
-    })
+    return jsonify(
+        {
+            "bvi": bvi,
+            "mention_rate": mention_rate,
+            "pages_analyzed": len(latest_by_target),
+            "last_pulse": last_pulse,
+        }
+    )
 
 
 @app.post("/api/history")
@@ -843,21 +971,30 @@ def _run_pulse() -> dict[str, Any]:
             analysis = analyzer.build_analysis(payload)
             report = rubric.build_report(analysis, _schema_for(payload), None)
             score = report["score"]
-            db.save_run("analyze", url, score, {"grade": report["grade"], "title": payload.get("title")})
+            db.save_run(
+                "analyze",
+                url,
+                score,
+                {"grade": report["grade"], "title": payload.get("title")},
+            )
             _snapshot_bvi(url)
             regression = monitor.detect_regression(previous_score, score)
             if regression:
                 db.save_alert(url, "analyze", previous_score, score)
                 alerts_fired += 1
                 # Best-effort fan-out to Slack/email; notify() never raises.
-                notify.notify(url, "analyze", previous_score, score, regression["delta"])
-            results.append({
-                "target": url,
-                "score": score,
-                "previous_score": previous_score,
-                "regressed": bool(regression),
-                "ok": True,
-            })
+                notify.notify(
+                    url, "analyze", previous_score, score, regression["delta"]
+                )
+            results.append(
+                {
+                    "target": url,
+                    "score": score,
+                    "previous_score": previous_score,
+                    "regressed": bool(regression),
+                    "ok": True,
+                }
+            )
         except Exception as exc:
             results.append({"target": url, "ok": False, "error": str(exc)})
     return {"pulsed": len(results), "alerts_fired": alerts_fired, "results": results}
@@ -872,12 +1009,14 @@ def api_pulse():
 @app.get("/api/alerts")
 def api_alerts():
     """Open regression alerts, the unread count, and scheduler status for the UI."""
-    return jsonify({
-        "alerts": db.recent_alerts(),
-        "count": db.uncleared_alert_count(),
-        "scheduler": dict(_scheduler_state),
-        "notify": notify.configured_channels(),
-    })
+    return jsonify(
+        {
+            "alerts": db.recent_alerts(),
+            "count": db.uncleared_alert_count(),
+            "scheduler": dict(_scheduler_state),
+            "notify": notify.configured_channels(),
+        }
+    )
 
 
 @app.post("/api/alerts/clear")
@@ -898,8 +1037,12 @@ def api_brand_index():
         return jsonify({"brands": brandindex.list_brands()})
     result = brandindex.brand_index(domain, record=False)
     if result["index"] is None:
-        return jsonify({"error": f"No scored runs yet for {result['domain']}. "
-                                 "Analyze a page or run a citation check first."}), 404
+        return jsonify(
+            {
+                "error": f"No scored runs yet for {result['domain']}. "
+                "Analyze a page or run a citation check first."
+            }
+        ), 404
     return jsonify(result)
 
 
@@ -917,7 +1060,8 @@ def _scheduler_loop(interval_seconds: int) -> None:
             _scheduler_state["last_run"] = db.now_iso()
             app.logger.info(
                 "Scheduled pulse: %d page(s), %d alert(s) fired",
-                summary["pulsed"], summary["alerts_fired"],
+                summary["pulsed"],
+                summary["alerts_fired"],
             )
         except Exception:  # noqa: BLE001 - a bad pulse must not kill the loop
             app.logger.exception("Scheduled pulse failed")
@@ -934,7 +1078,10 @@ def _start_scheduler() -> None:
         return
     _scheduler_state.update(enabled=True, minutes=minutes)
     thread = threading.Thread(
-        target=_scheduler_loop, args=(minutes * 60,), name="citepilot-pulse", daemon=True,
+        target=_scheduler_loop,
+        args=(minutes * 60,),
+        name="citepilot-pulse",
+        daemon=True,
     )
     thread.start()
     app.logger.info("Background pulse scheduler on: every %d minute(s)", minutes)
@@ -943,4 +1090,4 @@ def _start_scheduler() -> None:
 if __name__ == "__main__":
     load_dotenv()
     _start_scheduler()
-    app.run(host="127.0.0.1", port=8760, debug=False)
+    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 8760)), debug=False)
