@@ -272,7 +272,7 @@ def api_gate():
         return jsonify({"error": "Enter a page URL."}), 400
     try:
         minimum = int(data.get("min", gate.DEFAULT_MIN))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         minimum = gate.DEFAULT_MIN
     try:
         return jsonify(gate.run_gate(url, minimum))
@@ -1090,4 +1090,4 @@ def _start_scheduler() -> None:
 if __name__ == "__main__":
     load_dotenv()
     _start_scheduler()
-    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 8760)), debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8760)), debug=False)
